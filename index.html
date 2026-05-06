@@ -2,27 +2,29 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 - Multi-Filtro Corretto</title>
+    <title>LOM26 - Dashboard 11 Livelli Multi-Filtro</title>
     <style>
         :root { --primary: #1a73e8; --bg: #f8f9fa; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
         
-        .sidebar { width: 340px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
-        .sidebar h3 { margin: 5px 0; font-size: 11px; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+        /* Sidebar Multi-Filtro */
+        .sidebar { width: 350px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+        .sidebar h3 { margin: 8px 0 3px 0; font-size: 11px; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 2px; }
         
-        .multi-filter-box { max-height: 160px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 5px; background: #fff; }
-        .filter-item { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 4px; cursor: pointer; border-radius: 3px; user-select: none; }
+        .multi-filter-box { max-height: 130px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 4px; background: #fff; }
+        .filter-item { display: flex; align-items: center; gap: 8px; font-size: 10.5px; padding: 3px; cursor: pointer; border-radius: 3px; user-select: none; line-height: 1.2; }
         .filter-item:hover { background: #f1f3f4; }
-        .filter-item input { pointer-events: none; } /* Evita il doppio click */
-        .count { margin-left: auto; color: #888; font-size: 10px; font-weight: bold; }
+        .filter-item input { pointer-events: none; }
+        .count { margin-left: auto; color: #888; font-size: 9px; font-weight: bold; }
 
+        /* Area Principale */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         header { background: white; padding: 10px 20px; border-bottom: 1px solid #dadce0; display: flex; gap: 15px; align-items: center; }
         
         .table-area { flex: 1; overflow-y: auto; background: white; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #dadce0; }
-        td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; cursor: pointer; }
+        td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 12.5px; vertical-align: top; cursor: pointer; }
         
         .col-cod { width: 170px; font-family: monospace; font-weight: bold; color: var(--primary); }
         .col-pre { width: 100px; text-align: right; font-weight: bold; }
@@ -30,12 +32,13 @@
 
         .details-row { display: none; background: #fafafa; border-left: 4px solid var(--primary); }
         .details-content { padding: 20px; font-size: 12px; line-height: 1.6; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .btn-reset { padding: 10px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
-        <button onclick="resetTutto()" style="padding:10px; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:4px; font-weight:bold;">RESET FILTRI</button>
+        <button onclick="resetTutto()" class="btn-reset">RESET FILTRI</button>
         <div id="filters-container"></div>
     </aside>
 
@@ -58,13 +61,20 @@
     let fullData = [];
     let filtriAttivi = {}; 
 
+    // Lista completa degli 11 livelli + Settore extra
     const nomiLivelli = [
         { label: "GENERE", key: "Descr. Liv. 1" },
         { label: "MACROSETTORE", key: "Descr. Liv. 2" },
         { label: "SETTORE", key: "Descr. Liv. 3" },
         { label: "MANUFATTO", key: "Descr. Liv. 4" },
-        { label: "MATERIA", key: "Materia" },
-        { label: "DISCIPLINA", key: "Disciplina" }
+        { label: "INTERVENTO", key: "Descr. Liv. 5" },
+        { label: "ATTIVITÀ", key: "Descr. Liv. 6" },
+        { label: "LAVORAZIONE", key: "Descr. Liv. 7" },
+        { label: "DISCIPLINA", key: "Descr. Liv. 8" },
+        { label: "SISTEMA", key: "Descr. Liv. 9" },
+        { label: "UNITÀ TECNOLOGICA", key: "Descr. Liv. 10" },
+        { label: "MATERIA", key: "Descr. Liv. 11" },
+        { label: "SETTORE MERCEOLOGICO", key: "Settore merceologico" }
     ];
 
     async function init() {
@@ -76,7 +86,7 @@
         
         const container = document.getElementById('filters-container');
         nomiLivelli.forEach(l => {
-            container.innerHTML += `<h3>${l.label}</h3><div class="multi-filter-box" id="box-${l.key.replace(/ /g,'_')}"></div>`;
+            container.innerHTML += `<h3>${l.label}</h3><div class="multi-filter-box" id="box-${l.key.replace(/ /g,'_').replace(/\./g,'')}"></div>`;
         });
 
         applicaFiltri();
@@ -94,22 +104,21 @@
         });
 
         document.getElementById('stats').innerText = `VOCI TROVATE: ${filtrati.length}`;
-        aggiornaBox(filtrati); // Aggiorniamo i box basandoci solo sui risultati attuali
+        aggiornaBox(filtrati);
         render(filtrati);
     }
 
     function aggiornaBox(datiFiltrati) {
         nomiLivelli.forEach(l => {
-            const box = document.getElementById(`box-${l.key.replace(/ /g,'_')}`);
+            const boxId = `box-${l.key.replace(/ /g,'_').replace(/\./g,'')}`;
+            const box = document.getElementById(boxId);
             const conteggi = {};
             
-            // Calcoliamo i contatori solo per i dati che passano gli ALTRI filtri
             datiFiltrati.forEach(i => {
                 const val = i[l.key] || "nd";
                 conteggi[val] = (conteggi[val] || 0) + 1;
             });
 
-            // Aggiungiamo anche le opzioni selezionate che potrebbero avere 0 risultati
             filtriAttivi[l.key].forEach(val => {
                 if (!conteggi[val]) conteggi[val] = 0;
             });
@@ -117,7 +126,7 @@
             const ordinati = Object.keys(conteggi).sort((a,b) => conteggi[b] - conteggi[a]);
             
             box.innerHTML = ordinati.map(val => `
-                <div class="filter-item" onclick="toggleFiltro('${l.key}', '${val}')">
+                <div class="filter-item" onclick="toggleFiltro('${l.key}', '${val.replace(/'/g, "\\'")}')">
                     <input type="checkbox" ${filtriAttivi[l.key].has(val) ? 'checked' : ''}>
                     <span>${val}</span>
                     <span class="count">${conteggi[val]}</span>
@@ -145,7 +154,7 @@
                     <div class="details-content">
                         <div><strong>DESCRIZIONE</strong><br>${v.Declaratoria}</div>
                         <div style="border-left: 1px solid #eee; padding-left: 20px;">
-                            <strong>INFO</strong><br>UM: ${v['U.M.']} | RU: ${v['Rapporto R.U.']}<br><br>
+                            <strong>DETTAGLI</strong><br>UM: ${v['U.M.']} | RU: ${v['Rapporto R.U.']}<br><br>
                             ${nomiLivelli.map(nl => `<strong>${nl.label}:</strong> ${v[nl.key] || '-'}`).join('<br>')}
                         </div>
                     </div>
