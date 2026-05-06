@@ -3,88 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prezzario LOM26 (Velocizzato)</title>
-    <!-- Includiamo la libreria per leggere gli ZIP -->
-    <script src="https://jsdelivr.net"></script>
+    <title>Prezzario Lombardia 2026</title>
     <style>
-        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        h2 { color: #1a73e8; text-align: center; }
-        .search-box { width: 100%; padding: 15px; font-size: 16px; border: 2px solid #dfe1e5; border-radius: 8px; box-sizing: border-box; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background-color: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; text-align: left; font-size: 12px; }
-        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
-        .codice { font-family: monospace; font-weight: bold; color: #1a73e8; }
-        .stats { font-size: 13px; color: #70757a; margin-bottom: 10px; }
+        body { font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f7f9; margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; text-align: center; margin-bottom: 25px; }
+        
+        /* Stile Barra di Ricerca */
+        .search-container { position: sticky; top: 0; background: white; padding-bottom: 10px; z-index: 100; }
+        .search-box { width: 100%; padding: 16px; font-size: 18px; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; transition: border-color 0.3s; box-sizing: border-box; }
+        .search-box:focus { border-color: #1a73e8; }
+        
+        .stats { font-size: 14px; color: #666; margin: 10px 0; font-weight: 500; }
+
+        /* Stile Tabella */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
+        th { background-color: #f8f9fa; color: #5f6368; text-transform: uppercase; font-size: 12px; padding: 15px; border-bottom: 2px solid #eee; text-align: left; }
+        td { padding: 15px; border-bottom: 1px solid #f0f0f0; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
+        
+        .codice { font-family: "SFMono-Regular", Consolas, monospace; font-weight: bold; color: #1a73e8; width: 20%; }
+        .descrizione { width: 60%; }
+        .prezzo { font-weight: bold; color: #202124; text-align: right; width: 20%; }
+        
+        /* Messaggi di stato */
+        .loading { text-align: center; padding: 40px; color: #1a73e8; font-size: 18px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Prezzario Lombardia 2026</h2>
-    <input type="text" id="filtro" class="search-box" placeholder="Cerca voce o codice...">
-    <div id="stats" class="stats">Preparazione dati (estrazione dallo ZIP)...</div>
+    <h2>Consultazione Prezzario LOM26</h2>
+    
+    <div class="search-container">
+        <input type="text" id="filtro" class="search-box" placeholder="Cerca codice o parola chiave (es: scavo, calcestruzzo, OC.EEA)...">
+        <div id="stats" class="stats">In attesa del caricamento...</div>
+    </div>
 
-    <table id="tabella">
+    <div id="loadingMessage" class="loading">Caricamento del database in corso (31MB)...</div>
+
+    <table id="tabella" style="display:none;">
         <thead>
             <tr>
-                <th>Codice</th>
-                <th>Descrizione</th>
-                <th>Prezzo</th>
+                <th class="codice">Codice</th>
+                <th class="descrizione">Descrizione</th>
+                <th class="prezzo">Prezzo</th>
             </tr>
         </thead>
-        <tbody id="corpoTabella"></tbody>
+        <tbody id="corpoTabella">
+            <!-- I dati appariranno qui -->
+        </tbody>
     </table>
 </div>
 
 <script>
     let datiPrezzario = [];
     const corpoTabella = document.getElementById('corpoTabella');
+    const filtro = document.getElementById('filtro');
     const stats = document.getElementById('stats');
+    const loadingMessage = document.getElementById('loadingMessage');
+    const tabella = document.getElementById('tabella');
 
-    async function caricaEScompatta() {
+    // Funzione principale per caricare il JSON
+    async function caricaDati() {
         try {
-            // 1. Scarica il file ZIP
-            const response = await fetch('./dati.zip');
-            const blob = await response.blob();
+            // Legge il file dati.json che hai caricato con GitHub Desktop
+            const response = await fetch('./dati.json');
+            if (!response.ok) throw new Error("File non trovato");
             
-            // 2. Scompatta lo ZIP
-            const zip = await JSZip.loadAsync(blob);
-            // Cerca il file .json dentro lo zip (prende il primo che trova)
-            const nomeFileJson = Object.keys(zip.files).find(name => name.endsWith('.json'));
-            const contenutoJson = await zip.file(nomeFileJson).async("string");
+            datiPrezzario = await response.json();
             
-            datiPrezzario = JSON.parse(contenutoJson);
-            stats.innerText = `Dati pronti! Totale voci: ${datiPrezzario.length}`;
+            // Nasconde il caricamento e mostra la tabella
+            loadingMessage.style.display = 'none';
+            tabella.style.display = 'table';
+            
+            stats.innerText = `Database pronto. Totale voci: ${datiPrezzario.length.toLocaleString('it-IT')}`;
             mostraDati(datiPrezzario);
         } catch (error) {
-            stats.innerText = "Errore nel caricamento dello ZIP. Controlla il nome del file.";
+            loadingMessage.innerText = "Errore: Assicurati che il file dati.json sia nella stessa cartella dell'index.html su GitHub.";
+            stats.innerText = "Errore di caricamento.";
             console.error(error);
         }
     }
 
+    // Funzione per visualizzare i risultati (ne mostra solo 100 per volta per non bloccare il browser)
     function mostraDati(lista) {
-        const anteprima = lista.slice(0, 100); // Ne mostra 100 alla volta per velocità
+        const anteprima = lista.slice(0, 100);
+        
         corpoTabella.innerHTML = anteprima.map(v => `
             <tr>
                 <td class="codice">${v.Codice || '-'}</td>
-                <td>${v.Declaratoria || '-'}</td>
-                <td style="white-space:nowrap">€ ${v.Prezzo || '0,00'}</td>
+                <td class="descrizione">${v.Declaratoria || '-'}</td>
+                <td class="prezzo">€ ${v.Prezzo || '0,00'}</td>
             </tr>
         `).join('');
+
+        if (lista.length === 0) {
+            corpoTabella.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 40px;">Nessun risultato trovato per questa ricerca.</td></tr>';
+        }
     }
 
-    document.getElementById('filtro').addEventListener('input', function() {
-        const t = this.value.toLowerCase();
-        const filtrati = datiPrezzario.filter(v => 
-            (v.Codice || "").toLowerCase().includes(t) || 
-            (v.Declaratoria || "").toLowerCase().includes(t)
-        );
-        stats.innerText = `Risultati: ${filtrati.length}`;
+    // Gestione della ricerca in tempo reale
+    filtro.addEventListener('input', function() {
+        const termine = this.value.toLowerCase();
+        
+        // Cerca sia nel Codice che nella Descrizione (Declaratoria)
+        const filtrati = datiPrezzario.filter(v => {
+            const codice = (v.Codice || "").toLowerCase();
+            const desc = (v.Declaratoria || "").toLowerCase();
+            return codice.includes(termine) || desc.includes(termine);
+        });
+        
+        stats.innerText = `Risultati trovati: ${filtrati.length.toLocaleString('it-IT')}`;
         mostraDati(filtrati);
     });
 
-    caricaEScompatta();
+    // Avvia tutto al caricamento della pagina
+    caricaDati();
 </script>
+
 </body>
 </html>
