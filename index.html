@@ -2,86 +2,70 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard LOM26 - Ricerca Libera</title>
+    <title>LOM26 - Ricerca Avanzata</title>
     <style>
-        :root { --primary: #1a73e8; --bg: #f8f9fa; --text: #202124; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: var(--bg); color: var(--text); }
+        :root { --primary: #1a73e8; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
         
-        /* Sidebar Filtri */
-        .sidebar { width: 300px; background: white; border-right: 1px solid #dadce0; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
-        .sidebar h3 { margin-top: 0; font-size: 16px; color: var(--primary); }
-        .filter-group { display: flex; flex-direction: column; gap: 5px; }
-        label { font-size: 12px; font-weight: bold; color: #5f6368; }
-        select, input { padding: 10px; border: 1px solid #dadce0; border-radius: 6px; font-size: 14px; }
+        /* Sidebar con scroll indipendente */
+        .sidebar { width: 320px; background: white; border-right: 1px solid #dadce0; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .sidebar h3 { margin: 0; font-size: 16px; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 5px; }
+        
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        label { font-size: 11px; font-weight: bold; color: #5f6368; text-transform: uppercase; }
+        select, input { padding: 8px; border: 1px solid #dadce0; border-radius: 4px; font-size: 13px; width: 100%; }
+        select:disabled { background: #f1f3f4; cursor: not-allowed; }
 
-        /* Area Principale */
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        header { background: white; padding: 15px 30px; border-bottom: 1px solid #dadce0; display: flex; justify-content: space-between; align-items: center; }
-        .stats-badge { background: #e8f0fe; color: var(--primary); padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        header { background: white; padding: 15px 25px; border-bottom: 1px solid #dadce0; display: flex; justify-content: space-between; align-items: center; }
+        .stats { background: #e8f0fe; color: var(--primary); padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; }
 
-        /* Tabella */
-        .table-container { flex: 1; overflow-y: auto; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 12px; font-weight: bold; color: #5f6368; position: sticky; top: 0; }
-        td { padding: 12px; border-bottom: 1px solid #f1f3f4; font-size: 13px; cursor: pointer; }
+        .table-area { flex: 1; overflow-y: auto; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 12px; position: sticky; top: 0; z-index: 10; }
+        td { padding: 12px; border-bottom: 1px solid #f1f3f4; font-size: 13px; cursor: pointer; vertical-align: top; }
         tr:hover { background: #f8f9fa; }
-        
-        .codice-cell { font-family: monospace; color: var(--primary); font-weight: bold; }
-        .prezzo-cell { text-align: right; font-weight: bold; }
 
-        /* Dettaglio Espandibile */
-        .details-row { background: #fafafa !important; display: none; }
-        .details-container { padding: 20px; border-left: 4px solid var(--primary); display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .detail-item { font-size: 12px; margin-bottom: 8px; }
-        .detail-item b { color: #5f6368; display: block; margin-bottom: 2px; }
+        .details { background: #fcfcfc; display: none; border-left: 4px solid var(--primary); }
+        .details-grid { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 12px; }
+        .level-tag { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 5px; }
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
-        <h3>Filtri Liberi</h3>
+        <h3>Navigazione Livelli</h3>
+        <div id="livelli-container"></div> <!-- Qui verranno creati i menu dei livelli -->
         
-        <div class="filter-group">
-            <label>Cerca nel testo</label>
-            <input type="text" id="search" placeholder="Parola chiave...">
-        </div>
-
+        <h3>Attributi Risorsa</h3>
         <div class="filter-group">
             <label>Disciplina</label>
-            <select id="f-disciplina"><option value="">Tutte</option></select>
+            <select id="f-Disciplina"><option value="">Tutte</option></select>
         </div>
-
         <div class="filter-group">
             <label>Materia</label>
-            <select id="f-materia"><option value="">Tutte</option></select>
+            <select id="f-Materia"><option value="">Tutte</option></select>
+        </div>
+        <div class="filter-group">
+            <label>Settore</label>
+            <select id="f-Settore"><option value="">Tutti</option></select>
         </div>
 
-        <div class="filter-group">
-            <label>Settore Merceologico</label>
-            <select id="f-settore"><option value="">Tutti</option></select>
-        </div>
-
-        <div class="filter-group">
-            <label>Livello 1 (Genere)</label>
-            <select id="f-liv1"><option value="">Tutti</option></select>
-        </div>
-        
-        <button onclick="resetFiltri()" style="margin-top:10px; padding:8px; cursor:pointer; background:#eee; border:1px solid #ccc; border-radius:4px;">Resetta Filtri</button>
+        <button onclick="resetTutto()" style="padding:10px; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:4px;">Reset Filtri</button>
     </aside>
 
-    <main class="main-content">
+    <main class="main">
         <header>
-            <h2 style="margin:0; font-size:18px;">Consultazione Prezzario Lombardia 2026</h2>
-            <div id="stats" class="stats-badge">Caricamento...</div>
+            <input type="text" id="search" placeholder="Cerca nel testo..." style="width: 60%; padding: 10px; border-radius: 20px; border: 1px solid #ccc;">
+            <div id="stats" class="stats">Caricamento...</div>
         </header>
 
-        <div class="table-container">
+        <div class="table-area">
             <table id="mainTable">
                 <thead>
                     <tr>
-                        <th style="width:180px">Codice</th>
-                        <th>Descrizione Sintetica</th>
+                        <th style="width:160px">Codice</th>
+                        <th>Descrizione</th>
                         <th style="width:100px; text-align:right">Prezzo</th>
                     </tr>
                 </thead>
@@ -92,80 +76,105 @@
 
 <script>
     let fullData = [];
+    const campiFiltro = ['Disciplina', 'Materia', 'Settore merceologico'];
+    const livelliDesc = ['Descr. Liv. 1', 'Descr. Liv. 2', 'Descr. Liv. 3', 'Descr. Liv. 4']; // Possiamo aggiungerne altri
 
     async function init() {
-        try {
-            const res = await fetch('./dati.json');
-            const json = await res.json();
-            fullData = Object.values(json.Ricerca || json);
+        const res = await fetch('./dati.json');
+        const json = await res.json();
+        fullData = Object.values(json.Ricerca || json);
+        
+        // Crea i menu per i Livelli
+        const livContainer = document.getElementById('livelli-container');
+        livelliDesc.forEach(liv => {
+            const div = document.createElement('div');
+            div.className = 'filter-group';
+            div.innerHTML = `<label>${liv}</label><select id="f-${liv.replace(/ /g,'_')}"><option value="">Tutti</option></select>`;
+            livContainer.appendChild(div);
+        });
+
+        aggiornaFiltri();
+        applicaFiltri();
+    }
+
+    function aggiornaFiltri() {
+        const filtrati = getDatiFiltrati(true); // Filtra ignorando il filtro che stiamo calcolando
+        
+        const tuttiIFiltri = [...livelliDesc.map(l => 'f-' + l.replace(/ /g,'_')), ...campiFiltro.map(c => 'f-' + c.replace(/ /g,'_'))];
+        
+        tuttiIFiltri.forEach(id => {
+            const select = document.getElementById(id);
+            const valoreAttuale = select.value;
+            const campo = id.startsWith('f-Descr') ? id.replace('f-','').replace(/_/g,' ') : id.replace('f-','').replace('Settore','Settore merceologico');
             
-            // Popola i filtri della sidebar con valori unici
-            popolaTendina('f-disciplina', 'Disciplina');
-            popolaTendina('f-materia', 'Materia');
-            popolaTendina('f-settore', 'Settore merceologico');
-            popolaTendina('f-liv1', 'Descr. Liv. 1');
+            // Trova i valori univoci basandosi sui dati già filtrati dagli ALTRI filtri
+            const filtratiPerQuesto = fullData.filter(v => {
+                let match = true;
+                tuttiIFiltri.forEach(altroId => {
+                    if (altroId !== id) {
+                        const valAltro = document.getElementById(altroId).value;
+                        const campoAltro = altroId.startsWith('f-Descr') ? altroId.replace('f-','').replace(/_/g,' ') : altroId.replace('f-','').replace('Settore','Settore merceologico');
+                        if (valAltro && v[campoAltro] !== valAltro) match = false;
+                    }
+                });
+                return match;
+            });
 
-            document.getElementById('stats').innerText = `Voci totali: ${fullData.length.toLocaleString('it-IT')}`;
-            render(fullData);
-        } catch (e) {
-            console.error(e);
-            alert("Errore caricamento dati.");
-        }
-    }
+            const valoriUnici = [...new Set(filtratiPerQuesto.map(item => item[campo]).filter(v => v && v !== "nd"))].sort();
+            
+            select.innerHTML = `<option value="">Tutti</option>`;
+            valoriUnici.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                if (v === valoreAttuale) opt.selected = true;
+                select.appendChild(opt);
+            });
 
-    function popolaTendina(id, campo) {
-        const select = document.getElementById(id);
-        const uniqueValues = [...new Set(fullData.map(item => item[campo]).filter(v => v && v !== "nd"))].sort();
-        uniqueValues.forEach(val => {
-            const opt = document.createElement('option');
-            opt.value = val;
-            opt.textContent = val;
-            select.appendChild(opt);
+            select.onchange = applicaFiltri;
         });
-        select.addEventListener('change', filtra);
     }
 
-    function filtra() {
+    function getDatiFiltrati() {
         const s = document.getElementById('search').value.toLowerCase();
-        const d = document.getElementById('f-disciplina').value;
-        const m = document.getElementById('f-materia').value;
-        const set = document.getElementById('f-settore').value;
-        const l1 = document.getElementById('f-liv1').value;
-
-        const filtrati = fullData.filter(v => {
-            return (!s || v.Declaratoria.toLowerCase().includes(s) || v.Codice.toLowerCase().includes(s)) &&
-                   (!d || v.Disciplina === d) &&
-                   (!m || v.Materia === m) &&
-                   (!set || v['Settore merceologico'] === set) &&
-                   (!l1 || v['Descr. Liv. 1'] === l1);
+        return fullData.filter(v => {
+            let match = true;
+            if (s && !v.Declaratoria.toLowerCase().includes(s) && !v.Codice.toLowerCase().includes(s)) match = false;
+            
+            const filtriAttivi = [...livelliDesc, 'Disciplina', 'Materia', 'Settore merceologico'];
+            filtriAttivi.forEach(f => {
+                const val = document.getElementById('f-' + f.replace(/ /g,'_').replace('Settore_merceologico','Settore')).value;
+                if (val && v[f] !== val) match = false;
+            });
+            return match;
         });
+    }
 
-        document.getElementById('stats').innerText = `Trovate: ${filtrati.length}`;
+    function applicaFiltri() {
+        const filtrati = getDatiFiltrati();
+        document.getElementById('stats').innerText = `Risultati: ${filtrati.length}`;
+        aggiornaFiltri(); // Aggiorna le opzioni degli altri menu
         render(filtrati);
     }
 
     function render(data) {
         const body = document.getElementById('tableBody');
-        // Ne mostriamo 100 per volta per performance
         body.innerHTML = data.slice(0, 100).map((v, i) => `
             <tr onclick="toggleDetails(${i})">
-                <td class="codice-cell">${v.Codice}</td>
-                <td>${v.Declaratoria.substring(0, 120)}...</td>
-                <td class="prezzo-cell">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
+                <td style="color:#1a73e8; font-weight:bold;">${v.Codice}</td>
+                <td>${v.Declaratoria.substring(0, 100)}...</td>
+                <td style="text-align:right; font-weight:bold;">€ ${Number(v.Prezzo).toLocaleString('it-IT')}</td>
             </tr>
-            <tr id="details-${i}" class="details-row">
+            <tr id="det-${i}" class="details">
                 <td colspan="3">
-                    <div class="details-container">
+                    <div class="details-grid">
                         <div>
-                            <div class="detail-item"><b>Descrizione Completa:</b> ${v.Declaratoria}</div>
-                            <div class="detail-item"><b>Disciplina:</b> ${v.Disciplina || '-'}</div>
-                            <div class="detail-item"><b>Materia:</b> ${v.Materia || '-'}</div>
+                            <strong>Descrizione Completa:</strong><br>${v.Declaratoria}<br><br>
+                            <strong>U.M:</strong> ${v['U.M.']} | <strong>Rapporto R.U.:</strong> ${v['Rapporto R.U.']}
                         </div>
                         <div>
-                            <div class="detail-item"><b>Livello 1:</b> ${v['Descr. Liv. 1']}</div>
-                            <div class="detail-item"><b>Livello 2:</b> ${v['Descr. Liv. 2']}</div>
-                            <div class="detail-item"><b>Settore:</b> ${v['Settore merceologico']}</div>
-                            <div class="detail-item"><b>Rapporto R.U.:</b> ${v['Rapporto R.U.']}</div>
+                            <strong>Gerarchia:</strong><br>
+                            ${livelliDesc.map(l => `<span class="level-tag">${l}</span> ${v[l] || '-'}`).join('<br>')}
                         </div>
                     </div>
                 </td>
@@ -173,18 +182,18 @@
         `).join('');
     }
 
-    function toggleDetails(index) {
-        const row = document.getElementById(`details-${index}`);
-        row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
+    function toggleDetails(i) {
+        const d = document.getElementById(`det-${i}`);
+        d.style.display = d.style.display === 'table-row' ? 'none' : 'table-row';
     }
 
-    function resetFiltri() {
+    function resetTutto() {
         document.querySelectorAll('select').forEach(s => s.value = "");
         document.getElementById('search').value = "";
-        filtra();
+        applicaFiltri();
     }
 
-    document.getElementById('search').addEventListener('input', filtra);
+    document.getElementById('search').addEventListener('input', applicaFiltri);
     init();
 </script>
 </body>
