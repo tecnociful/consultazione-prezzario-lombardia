@@ -2,50 +2,55 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 - Navigazione Avanzata</title>
+    <title>LOM26 - Consultazione Professionale</title>
     <style>
         :root { --primary: #1a73e8; --bg: #f8f9fa; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
-        .sidebar { width: 320px; background: white; border-right: 1px solid #dadce0; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .sidebar h3 { margin: 0; font-size: 16px; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 5px; margin-bottom: 5px; }
-        .filter-group { display: flex; flex-direction: column; gap: 4px; }
-        label { font-size: 11px; font-weight: bold; color: #5f6368; text-transform: uppercase; }
-        select, input { padding: 8px; border: 1px solid #dadce0; border-radius: 4px; font-size: 13px; width: 100%; box-sizing: border-box; }
+        
+        .sidebar { width: 350px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .sidebar h3 { margin: 10px 0 5px 0; font-size: 13px; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 3px; text-transform: uppercase; }
+        
+        .filter-group { display: flex; flex-direction: column; gap: 2px; }
+        label { font-size: 10px; font-weight: bold; color: #5f6368; text-transform: uppercase; }
+        select, input { padding: 6px 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 12px; width: 100%; box-sizing: border-box; }
+
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        header { background: white; padding: 15px 25px; border-bottom: 1px solid #dadce0; display: flex; justify-content: space-between; align-items: center; }
+        header { background: white; padding: 12px 25px; border-bottom: 1px solid #dadce0; display: flex; justify-content: space-between; align-items: center; }
         .stats { background: #e8f0fe; color: var(--primary); padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; }
-        .table-area { flex: 1; overflow-y: auto; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 12px; position: sticky; top: 0; z-index: 10; }
+
+        .table-area { flex: 1; overflow-y: auto; padding: 15px; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; }
+        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; }
         td { padding: 12px; border-bottom: 1px solid #f1f3f4; font-size: 13px; cursor: pointer; vertical-align: top; }
         tr:hover { background: #f8f9fa; }
+
         .details { background: #fcfcfc; display: none; border-left: 4px solid var(--primary); }
-        .details-grid { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 12px; }
-        .level-tag { background: #eee; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 5px; font-weight: bold; }
+        .details-grid { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 12px; }
+        .level-tag { background: #eef2f7; color: #47505a; padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: bold; margin-right: 6px; border: 1px solid #d1d9e2; text-transform: uppercase; }
+        .reset-btn { padding: 10px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
-        <h3>Navigazione Livelli</h3>
+        <button onclick="resetTutto()" class="reset-btn">Reset Filtri</button>
+        
+        <h3>Struttura Gerarchica</h3>
         <div id="livelli-container"></div>
         
-        <h3>Attributi Risorsa</h3>
-        <div class="filter-group"><label>Disciplina</label><select id="f-Disciplina"><option value="">Tutte</option></select></div>
-        <div class="filter-group"><label>Materia</label><select id="f-Materia"><option value="">Tutte</option></select></div>
-        <div class="filter-group"><label>Settore</label><select id="f-Settore"><option value="">Tutti</option></select></div>
-
-        <button onclick="resetTutto()" style="padding:10px; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:4px; margin-top:10px;">Reset Filtri</button>
+        <!-- Questi attributi sono ora integrati nei livelli o gestiti come filtri extra se necessario -->
+        <h3>Ulteriori Parametri</h3>
+        <div class="filter-group"><label>Settore Merceologico</label><select id="f-Settore"><option value="">Tutti</option></select></div>
     </aside>
 
     <main class="main">
         <header>
-            <input type="text" id="search" placeholder="Cerca nel testo..." style="width: 60%; padding: 10px; border-radius: 20px; border: 1px solid #ccc;">
-            <div id="stats" class="stats">Caricamento...</div>
+            <input type="text" id="search" placeholder="🔍 Cerca nel testo o nel codice..." style="width: 50%; border-radius: 20px; padding: 10px; border: 1px solid #ccc;">
+            <div id="stats" class="stats">Inizializzazione...</div>
         </header>
         <div class="table-area">
             <table>
-                <thead><tr><th style="width:160px">Codice</th><th>Descrizione</th><th style="width:100px; text-align:right">Prezzo</th></tr></thead>
+                <thead><tr><th style="width:180px">Codice</th><th>Descrizione Voce</th><th style="width:110px; text-align:right">Prezzo</th></tr></thead>
                 <tbody id="tableBody"></tbody>
             </table>
         </div>
@@ -53,16 +58,18 @@
 
 <script>
     let fullData = [];
-    // Mappa precisa tra ID dei filtri e nomi dei campi nel JSON
-    const configFiltri = {
-        'f-Descr_Liv_1': 'Descr. Liv. 1',
-        'f-Descr_Liv_2': 'Descr. Liv. 2',
-        'f-Descr_Liv_3': 'Descr. Liv. 3',
-        'f-Descr_Liv_4': 'Descr. Liv. 4',
-        'f-Disciplina': 'Disciplina',
-        'f-Materia': 'Materia',
-        'f-Settore': 'Settore merceologico'
-    };
+    
+    // Mappatura esatta basata sulla tua immagine
+    const nomiLivelli = [
+        "GENERE", "MACROSETTORE", "SETTORE", "MANUFATTO/DESTINAZIONE", 
+        "INTERVENTO", "ATTIVITÀ", "LAVORAZIONE", "DISCIPLINA", 
+        "SISTEMA", "UNITÀ TECNOLOGICA", "MATERIA"
+    ];
+
+    const configFiltri = { 'f-Settore': 'Settore merceologico' };
+    nomiLivelli.forEach((nome, i) => {
+        configFiltri[`f-Liv${i+1}`] = `Descr. Liv. ${i+1}`;
+    });
 
     async function init() {
         try {
@@ -70,37 +77,30 @@
             const json = await res.json();
             fullData = Object.values(json.Ricerca || json);
             
-            // Creazione dinamica menu livelli
             const container = document.getElementById('livelli-container');
-            [1,2,3,4].forEach(n => {
-                const id = `f-Descr_Liv_${n}`;
-                container.innerHTML += `<div class="filter-group"><label>Livello ${n}</label><select id="${id}"><option value="">Tutti</option></select></div>`;
+            nomiLivelli.forEach((nome, i) => {
+                const id = `f-Liv${i+1}`;
+                container.innerHTML += `<div class="filter-group"><label>${nome}</label><select id="${id}"><option value="">Caricamento...</option></select></div>`;
             });
 
-            // Avvio logica filtri
             aggiornaOpzioniFiltri();
             applicaFiltri();
         } catch (e) {
-            document.getElementById('stats').innerText = "Errore caricamento dati.";
+            document.getElementById('stats').innerText = "Errore caricamento.";
             console.error(e);
         }
     }
 
     function aggiornaOpzioniFiltri() {
         const query = document.getElementById('search').value.toLowerCase();
-
         Object.keys(configFiltri).forEach(idSelect => {
             const select = document.getElementById(idSelect);
             if (!select) return;
             const valoreAttuale = select.value;
             const campoTarget = configFiltri[idSelect];
 
-            // Calcola i valori disponibili basandosi su TUTTI gli altri filtri + la ricerca testuale
             const datiPerFiltro = fullData.filter(item => {
-                // 1. Controllo ricerca testuale
                 if (query && !item.Declaratoria.toLowerCase().includes(query) && !item.Codice.toLowerCase().includes(query)) return false;
-
-                // 2. Controllo altri filtri select
                 for (let id in configFiltri) {
                     if (id === idSelect) continue;
                     const valFiltro = document.getElementById(id).value;
@@ -110,52 +110,52 @@
             });
 
             const unici = [...new Set(datiPerFiltro.map(i => i[campoTarget]).filter(v => v && v !== "nd"))].sort();
-            
-            // Ricostruiamo le opzioni
             select.innerHTML = `<option value="">Tutti (${unici.length})</option>`;
             unici.forEach(v => {
                 const opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = v;
+                opt.value = v; opt.textContent = v;
                 if (v === valoreAttuale) opt.selected = true;
                 select.appendChild(opt);
             });
+            select.onchange = applicaFiltri;
         });
     }
-
 
     function applicaFiltri() {
         const query = document.getElementById('search').value.toLowerCase();
         const filtrati = fullData.filter(item => {
-            // Check ricerca testuale
             if (query && !item.Declaratoria.toLowerCase().includes(query) && !item.Codice.toLowerCase().includes(query)) return false;
-            // Check tutti i filtri select
             for (let id in configFiltri) {
                 const val = document.getElementById(id).value;
                 if (val && item[configFiltri[id]] !== val) return false;
             }
             return true;
         });
-
-        document.getElementById('stats').innerText = `Risultati: ${filtrati.length.toLocaleString('it-IT')}`;
+        document.getElementById('stats').innerText = `Trovate: ${filtrati.length.toLocaleString('it-IT')}`;
         aggiornaOpzioniFiltri();
         render(filtrati);
     }
 
     function render(data) {
         const body = document.getElementById('tableBody');
-        body.innerHTML = data.slice(0, 100).map((v, i) => `
+        body.innerHTML = data.slice(0, 50).map((v, i) => `
             <tr onclick="toggleDet(${i})">
-                <td style="color:#1a73e8; font-weight:bold;">${v.Codice}</td>
-                <td>${v.Declaratoria.substring(0, 120)}...</td>
-                <td style="text-align:right; font-weight:bold;">€ ${Number(v.Prezzo).toLocaleString('it-IT')}</td>
+                <td style="color:var(--primary); font-weight:bold; font-family:monospace;">${v.Codice}</td>
+                <td>${v.Declaratoria.substring(0, 110)}...</td>
+                <td style="text-align:right; font-weight:bold;">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
             </tr>
             <tr id="det-${i}" class="details">
                 <td colspan="3">
                     <div class="details-grid">
-                        <div><strong>Descrizione:</strong><br>${v.Declaratoria}<br><br><strong>U.M:</strong> ${v['U.M.']} | <strong>R.U.:</strong> ${v['Rapporto R.U.']}</div>
-                        <div><strong>Gerarchia:</strong><br>
-                            ${[1,2,3,4].map(n => `<span class="level-tag">L${n}</span> ${v['Descr. Liv. '+n] || '-'}`).join('<br>')}
+                        <div>
+                            <strong>DESCRIZIONE COMPLETA:</strong><br>${v.Declaratoria}<br><br>
+                            <strong>U.M:</strong> ${v['U.M.']} | <strong>RAPPORTO R.U.:</strong> ${v['Rapporto R.U.']}
+                        </div>
+                        <div>
+                            <strong>STRUTTURA CLASSIFICAZIONE:</strong><br>
+                            ${nomiLivelli.map((nome, idx) => 
+                                `<div style="margin-bottom:3px;"><span class="level-tag">${nome}</span> ${v['Descr. Liv. '+(idx+1)] || '-'}</div>`
+                            ).join('')}
                         </div>
                     </div>
                 </td>
