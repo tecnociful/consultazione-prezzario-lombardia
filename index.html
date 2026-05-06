@@ -2,55 +2,69 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 - Consultazione Professionale</title>
+    <title>LOM26 - Analizzatore Prezzario</title>
     <style>
         :root { --primary: #1a73e8; --bg: #f8f9fa; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
         
-        .sidebar { width: 350px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        .sidebar h3 { margin: 10px 0 5px 0; font-size: 13px; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 3px; text-transform: uppercase; }
-        
+        /* Sidebar */
+        .sidebar { width: 320px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .sidebar h3 { margin: 10px 0 5px 0; font-size: 11px; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 3px; text-transform: uppercase; }
         .filter-group { display: flex; flex-direction: column; gap: 2px; }
-        label { font-size: 10px; font-weight: bold; color: #5f6368; text-transform: uppercase; }
-        select, input { padding: 6px 10px; border: 1px solid #dadce0; border-radius: 4px; font-size: 12px; width: 100%; box-sizing: border-box; }
+        label { font-size: 9px; font-weight: bold; color: #5f6368; }
+        select, input { padding: 6px; border: 1px solid #dadce0; border-radius: 4px; font-size: 11px; width: 100%; }
 
+        /* Main Area */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        header { background: white; padding: 12px 25px; border-bottom: 1px solid #dadce0; display: flex; justify-content: space-between; align-items: center; }
-        .stats { background: #e8f0fe; color: var(--primary); padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; }
+        header { background: white; padding: 10px 20px; border-bottom: 1px solid #dadce0; display: flex; gap: 20px; align-items: center; }
+        
+        /* Tabella a Larghezza Totale */
+        .table-area { flex: 1; overflow-y: auto; padding: 0; }
+        table { width: 100%; border-collapse: collapse; background: white; table-layout: fixed; }
+        
+        /* Colonne Adattabili */
+        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #dadce0; cursor: pointer; user-select: none; }
+        th:hover { background: #e8eaed; }
+        th.sort-active::after { content: ' ↕'; color: var(--primary); }
 
-        .table-area { flex: 1; overflow-y: auto; padding: 15px; }
-        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 8px; }
-        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; }
-        td { padding: 12px; border-bottom: 1px solid #f1f3f4; font-size: 13px; cursor: pointer; vertical-align: top; }
-        tr:hover { background: #f8f9fa; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f1f3f4; font-size: 12px; vertical-align: top; overflow: hidden; text-overflow: ellipsis; }
+        
+        .col-codice { width: 180px; font-family: monospace; font-weight: bold; color: var(--primary); }
+        .col-descr { width: auto; white-space: normal; line-height: 1.4; }
+        .col-prezzo { width: 100px; text-align: right; font-weight: bold; }
 
-        .details { background: #fcfcfc; display: none; border-left: 4px solid var(--primary); }
-        .details-grid { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 12px; }
-        .level-tag { background: #eef2f7; color: #47505a; padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: bold; margin-right: 6px; border: 1px solid #d1d9e2; text-transform: uppercase; }
-        .reset-btn { padding: 10px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 4px; font-weight: bold; }
+        /* Evidenziazione differenze */
+        .diff-text { color: #d93025; font-weight: 600; background: #fff0f0; padding: 0 2px; }
+
+        .details { background: #fafafa; display: none; }
+        .reset-btn { padding: 8px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
-        <button onclick="resetTutto()" class="reset-btn">Reset Filtri</button>
-        
+        <button onclick="resetTutto()" class="reset-btn">RESET FILTRI</button>
         <h3>Struttura Gerarchica</h3>
         <div id="livelli-container"></div>
-        
-        <!-- Questi attributi sono ora integrati nei livelli o gestiti come filtri extra se necessario -->
-        <h3>Ulteriori Parametri</h3>
+        <h3>Parametri</h3>
         <div class="filter-group"><label>Settore Merceologico</label><select id="f-Settore"><option value="">Tutti</option></select></div>
     </aside>
 
     <main class="main">
         <header>
-            <input type="text" id="search" placeholder="🔍 Cerca nel testo o nel codice..." style="width: 50%; border-radius: 20px; padding: 10px; border: 1px solid #ccc;">
-            <div id="stats" class="stats">Inizializzazione...</div>
+            <input type="text" id="search" placeholder="🔍 Cerca nel testo o codice..." style="flex:1; padding: 8px 15px; border-radius: 20px; border: 1px solid #ccc; font-size: 14px;">
+            <div id="stats" class="stats-badge" style="font-size:12px; font-weight:bold; color:var(--primary)">Caricamento...</div>
         </header>
+
         <div class="table-area">
-            <table>
-                <thead><tr><th style="width:180px">Codice</th><th>Descrizione Voce</th><th style="width:110px; text-align:right">Prezzo</th></tr></thead>
+            <table id="mainTable">
+                <thead>
+                    <tr>
+                        <th class="col-codice" onclick="ordina('Codice')">CODICE</th>
+                        <th class="col-descr" onclick="ordina('Declaratoria')">DESCRIZIONE VOCE (Clicca per ordinare/confrontare)</th>
+                        <th class="col-prezzo" onclick="ordina('Prezzo')">PREZZO</th>
+                    </tr>
+                </thead>
                 <tbody id="tableBody"></tbody>
             </table>
         </div>
@@ -58,72 +72,48 @@
 
 <script>
     let fullData = [];
-    
-    // Mappatura esatta basata sulla tua immagine
-    const nomiLivelli = [
-        "GENERE", "MACROSETTORE", "SETTORE", "MANUFATTO/DESTINAZIONE", 
-        "INTERVENTO", "ATTIVITÀ", "LAVORAZIONE", "DISCIPLINA", 
-        "SISTEMA", "UNITÀ TECNOLOGICA", "MATERIA"
-    ];
+    let datiFiltrati = [];
+    let sortConfig = { campo: null, asc: true };
 
+    const nomiLivelli = ["GENERE", "MACROSETTORE", "SETTORE", "MANUFATTO/DESTINAZIONE", "INTERVENTO", "ATTIVITÀ", "LAVORAZIONE", "DISCIPLINA", "SISTEMA", "UNITÀ TECNOLOGICA", "MATERIA"];
     const configFiltri = { 'f-Settore': 'Settore merceologico' };
-    nomiLivelli.forEach((nome, i) => {
-        configFiltri[`f-Liv${i+1}`] = `Descr. Liv. ${i+1}`;
-    });
+    nomiLivelli.forEach((n, i) => configFiltri[`f-Liv${i+1}`] = `Descr. Liv. ${i+1}`);
 
     async function init() {
-        try {
-            const res = await fetch('./dati.json');
-            const json = await res.json();
-            fullData = Object.values(json.Ricerca || json);
-            
-            const container = document.getElementById('livelli-container');
-            nomiLivelli.forEach((nome, i) => {
-                const id = `f-Liv${i+1}`;
-                container.innerHTML += `<div class="filter-group"><label>${nome}</label><select id="${id}"><option value="">Caricamento...</option></select></div>`;
-            });
+        const res = await fetch('./dati.json');
+        const json = await res.json();
+        fullData = Object.values(json.Ricerca || json);
+        
+        const container = document.getElementById('livelli-container');
+        nomiLivelli.forEach((nome, i) => {
+            container.innerHTML += `<div class="filter-group"><label>${nome}</label><select id="f-Liv${i+1}"></select></div>`;
+        });
 
-            aggiornaOpzioniFiltri();
-            applicaFiltri();
-        } catch (e) {
-            document.getElementById('stats').innerText = "Errore caricamento.";
-            console.error(e);
-        }
+        applicaFiltri();
     }
 
-    function aggiornaOpzioniFiltri() {
-        const query = document.getElementById('search').value.toLowerCase();
-        Object.keys(configFiltri).forEach(idSelect => {
-            const select = document.getElementById(idSelect);
-            if (!select) return;
-            const valoreAttuale = select.value;
-            const campoTarget = configFiltri[idSelect];
-
-            const datiPerFiltro = fullData.filter(item => {
-                if (query && !item.Declaratoria.toLowerCase().includes(query) && !item.Codice.toLowerCase().includes(query)) return false;
-                for (let id in configFiltri) {
-                    if (id === idSelect) continue;
-                    const valFiltro = document.getElementById(id).value;
-                    if (valFiltro && item[configFiltri[id]] !== valFiltro) return false;
-                }
-                return true;
-            });
-
-            const unici = [...new Set(datiPerFiltro.map(i => i[campoTarget]).filter(v => v && v !== "nd"))].sort();
-            select.innerHTML = `<option value="">Tutti (${unici.length})</option>`;
-            unici.forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v; opt.textContent = v;
-                if (v === valoreAttuale) opt.selected = true;
-                select.appendChild(opt);
-            });
-            select.onchange = applicaFiltri;
+    function ordina(campo) {
+        sortConfig.asc = (sortConfig.campo === campo) ? !sortConfig.asc : true;
+        sortConfig.campo = campo;
+        
+        datiFiltrati.sort((a, b) => {
+            let valA = a[campo], valB = b[campo];
+            if(campo === 'Prezzo') return sortConfig.asc ? valA - valB : valB - valA;
+            return sortConfig.asc ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
         });
+        render(datiFiltrati);
+    }
+
+    function evidenziaDifferenze(testoCorrente, testoPrecedente) {
+        if (!testoPrecedente) return testoCorrente;
+        let paroleC = testoCorrente.split(' ');
+        let paroleP = testoPrecedente.split(' ');
+        return paroleC.map((p, i) => (p !== paroleP[i]) ? `<span class="diff-text">${p}</span>` : p).join(' ');
     }
 
     function applicaFiltri() {
         const query = document.getElementById('search').value.toLowerCase();
-        const filtrati = fullData.filter(item => {
+        datiFiltrati = fullData.filter(item => {
             if (query && !item.Declaratoria.toLowerCase().includes(query) && !item.Codice.toLowerCase().includes(query)) return false;
             for (let id in configFiltri) {
                 const val = document.getElementById(id).value;
@@ -131,41 +121,56 @@
             }
             return true;
         });
-        document.getElementById('stats').innerText = `Trovate: ${filtrati.length.toLocaleString('it-IT')}`;
-        aggiornaOpzioniFiltri();
-        render(filtrati);
+
+        document.getElementById('stats').innerText = `VOCI: ${datiFiltrati.length}`;
+        aggiornaOpzioniFiltri(query);
+        render(datiFiltrati);
+    }
+
+    function aggiornaOpzioniFiltri(query) {
+        Object.keys(configFiltri).forEach(idSelect => {
+            const select = document.getElementById(idSelect);
+            const valAttuale = select.value;
+            const target = configFiltri[idSelect];
+
+            const disponibili = fullData.filter(item => {
+                if (query && !item.Declaratoria.toLowerCase().includes(query) && !item.Codice.toLowerCase().includes(query)) return false;
+                for (let id in configFiltri) {
+                    if (id === idSelect) continue;
+                    const v = document.getElementById(id).value;
+                    if (v && item[configFiltri[id]] !== v) return false;
+                }
+                return true;
+            });
+
+            const unici = [...new Set(disponibili.map(i => i[target]).filter(v => v && v !== "nd"))].sort();
+            select.innerHTML = `<option value="">Tutti (${unici.length})</option>`;
+            unici.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v; opt.textContent = v;
+                if (v === valAttuale) opt.selected = true;
+                select.appendChild(opt);
+            });
+            select.onchange = applicaFiltri;
+        });
     }
 
     function render(data) {
         const body = document.getElementById('tableBody');
-        body.innerHTML = data.slice(0, 50).map((v, i) => `
-            <tr onclick="toggleDet(${i})">
-                <td style="color:var(--primary); font-weight:bold; font-family:monospace;">${v.Codice}</td>
-                <td>${v.Declaratoria.substring(0, 110)}...</td>
-                <td style="text-align:right; font-weight:bold;">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
-            </tr>
-            <tr id="det-${i}" class="details">
-                <td colspan="3">
-                    <div class="details-grid">
-                        <div>
-                            <strong>DESCRIZIONE COMPLETA:</strong><br>${v.Declaratoria}<br><br>
-                            <strong>U.M:</strong> ${v['U.M.']} | <strong>RAPPORTO R.U.:</strong> ${v['Rapporto R.U.']}
-                        </div>
-                        <div>
-                            <strong>STRUTTURA CLASSIFICAZIONE:</strong><br>
-                            ${nomiLivelli.map((nome, idx) => 
-                                `<div style="margin-bottom:3px;"><span class="level-tag">${nome}</span> ${v['Descr. Liv. '+(idx+1)] || '-'}</div>`
-                            ).join('')}
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    function toggleDet(i) {
-        const d = document.getElementById(`det-${i}`);
-        d.style.display = d.style.display === 'table-row' ? 'none' : 'table-row';
+        let html = "";
+        data.slice(0, 60).forEach((v, i) => {
+            // Confronto con la voce sopra per evidenziare differenze
+            const testoVisualizzato = (i > 0) ? evidenziaDifferenze(v.Declaratoria, data[i-1].Declaratoria) : v.Declaratoria;
+            
+            html += `
+                <tr>
+                    <td class="col-codice">${v.Codice}</td>
+                    <td class="col-descr">${testoVisualizzato}</td>
+                    <td class="col-prezzo">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
+                </tr>
+            `;
+        });
+        body.innerHTML = html;
     }
 
     function resetTutto() {
