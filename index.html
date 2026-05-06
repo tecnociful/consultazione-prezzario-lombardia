@@ -2,124 +2,138 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prezzario Lombardia 2026</title>
+    <title>Prezzario LOM26 - Navigazione Gerarchica</title>
     <style>
-        body { font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f7f9; margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        h2 { color: #1a73e8; text-align: center; margin-bottom: 25px; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; text-align: center; }
         
-        /* Stile Barra di Ricerca */
-        .search-container { position: sticky; top: 0; background: white; padding-bottom: 10px; z-index: 100; }
-        .search-box { width: 100%; padding: 16px; font-size: 18px; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; transition: border-color 0.3s; box-sizing: border-box; }
-        .search-box:focus { border-color: #1a73e8; }
+        /* Pannello Filtri */
+        .filter-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        select, input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; width: 100%; }
         
-        .stats { font-size: 14px; color: #666; margin: 10px 0; font-weight: 500; }
-
-        /* Stile Tabella */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
-        th { background-color: #f8f9fa; color: #5f6368; text-transform: uppercase; font-size: 12px; padding: 15px; border-bottom: 2px solid #eee; text-align: left; }
-        td { padding: 15px; border-bottom: 1px solid #f0f0f0; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
-        
-        .codice { font-family: "SFMono-Regular", Consolas, monospace; font-weight: bold; color: #1a73e8; width: 20%; }
-        .descrizione { width: 60%; }
-        .prezzo { font-weight: bold; color: #202124; text-align: right; width: 20%; }
-        
-        /* Messaggi di stato */
-        .loading { text-align: center; padding: 40px; color: #1a73e8; font-size: 18px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #1a73e8; color: white; padding: 12px; text-align: left; position: sticky; top: 0; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .codice { font-family: monospace; font-weight: bold; color: #1a73e8; }
+        .stats { margin-bottom: 10px; font-weight: bold; color: #555; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Consultazione Prezzario LOM26</h2>
+    <h2>Navigazione Prezzario LOM26</h2>
     
-    <div class="search-container">
-        <input type="text" id="filtro" class="search-box" placeholder="Cerca codice o parola chiave (es: scavo, calcestruzzo, OC.EEA)...">
-        <div id="stats" class="stats">In attesa del caricamento...</div>
+    <div class="filter-panel">
+        <!-- Filtri ad albero -->
+        <select id="filtroGenere"><option value="">Seleziona Genere (es. OC)</option></select>
+        <select id="filtroFamiglia" disabled><option value="">Seleziona Famiglia</option></select>
+        <select id="filtroCategoria" disabled><option value="">Seleziona Categoria</option></select>
+        <input type="text" id="filtroTesto" placeholder="Ricerca libera (parola chiave)...">
     </div>
 
-    <div id="loadingMessage" class="loading">Caricamento del database in corso (31MB)...</div>
+    <div id="stats" class="stats">Caricamento database...</div>
 
-    <table id="tabella" style="display:none;">
+    <table>
         <thead>
             <tr>
-                <th class="codice">Codice</th>
-                <th class="descrizione">Descrizione</th>
-                <th class="prezzo">Prezzo</th>
+                <th style="width:20%">Codice</th>
+                <th>Descrizione</th>
+                <th style="width:10%">Prezzo</th>
             </tr>
         </thead>
-        <tbody id="corpoTabella">
-            <!-- I dati appariranno qui -->
-        </tbody>
+        <tbody id="corpoTabella"></tbody>
     </table>
 </div>
 
 <script>
     let datiPrezzario = [];
-    const corpoTabella = document.getElementById('corpoTabella');
-    const filtro = document.getElementById('filtro');
-    const stats = document.getElementById('stats');
-    const loadingMessage = document.getElementById('loadingMessage');
-    const tabella = document.getElementById('tabella');
-
-    // Funzione principale per caricare il JSON
-    async function caricaDati() {
-        try {
-            // Legge il file dati.json che hai caricato con GitHub Desktop
-            const response = await fetch('./dati.json');
-            if (!response.ok) throw new Error("File non trovato");
-            
-            datiPrezzario = await response.json();
-            
-            // Nasconde il caricamento e mostra la tabella
-            loadingMessage.style.display = 'none';
-            tabella.style.display = 'table';
-            
-            stats.innerText = `Database pronto. Totale voci: ${datiPrezzario.length.toLocaleString('it-IT')}`;
-            mostraDati(datiPrezzario);
-        } catch (error) {
-            loadingMessage.innerText = "Errore: Assicurati che il file dati.json sia nella stessa cartella dell'index.html su GitHub.";
-            stats.innerText = "Errore di caricamento.";
-            console.error(error);
-        }
+    
+    async function init() {
+        const response = await fetch('dati.json');
+        datiPrezzario = await response.json();
+        popolaFiltro('filtroGenere', 0); // Popola il primo livello (es. OC, IM)
+        aggiornaVista();
     }
 
-    // Funzione per visualizzare i risultati (ne mostra solo 100 per volta per non bloccare il browser)
-    function mostraDati(lista) {
-        const anteprima = lista.slice(0, 100);
+    // Funzione per estrarre i livelli dal codice (es: OC.EEA.PA01 -> [OC, EEA, PA01])
+    function getLivelli(codice) {
+        return codice ? codice.split('.') : [];
+    }
+
+    function popolaFiltro(idElemento, indiceLivello, prefisso = "") {
+        const select = document.getElementById(idElemento);
+        const termini = new Set();
         
-        corpoTabella.innerHTML = anteprima.map(v => `
+        datiPrezzario.forEach(v => {
+            const livelli = getLivelli(v.Codice);
+            if (livelli[indiceLivello] && v.Codice.startsWith(prefisso)) {
+                termini.add(livelli[indiceLivello]);
+            }
+        });
+
+        select.innerHTML = `<option value="">Tutti (${idElemento.replace('filtro','')})</option>`;
+        Array.from(termini).sort().forEach(t => {
+            select.innerHTML += `<option value="${t}">${t}</option>`;
+        });
+    }
+
+    function aggiornaVista() {
+        const gen = document.getElementById('filtroGenere').value;
+        const fam = document.getElementById('filtroFamiglia').value;
+        const cat = document.getElementById('filtroCategoria').value;
+        const testo = document.getElementById('filtroTesto').value.toLowerCase();
+
+        const filtrati = datiPrezzario.filter(v => {
+            const livelli = getLivelli(v.Codice);
+            const matchGen = !gen || livelli[0] === gen;
+            const matchFam = !fam || livelli[1] === fam;
+            const matchCat = !cat || livelli[2] === cat;
+            const matchTesto = !testo || v.Declaratoria.toLowerCase().includes(testo) || v.Codice.toLowerCase().includes(testo);
+            return matchGen && matchFam && matchCat && matchTesto;
+        });
+
+        document.getElementById('stats').innerText = `Voci trovate: ${filtrati.length}`;
+        
+        const corpo = document.getElementById('corpoTabella');
+        corpo.innerHTML = filtrati.slice(0, 50).map(v => `
             <tr>
-                <td class="codice">${v.Codice || '-'}</td>
-                <td class="descrizione">${v.Declaratoria || '-'}</td>
-                <td class="prezzo">€ ${v.Prezzo || '0,00'}</td>
+                <td class="codice">${v.Codice}</td>
+                <td>${v.Declaratoria}</td>
+                <td>€ ${v.Prezzo}</td>
             </tr>
         `).join('');
-
-        if (lista.length === 0) {
-            corpoTabella.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 40px;">Nessun risultato trovato per questa ricerca.</td></tr>';
-        }
     }
 
-    // Gestione della ricerca in tempo reale
-    filtro.addEventListener('input', function() {
-        const termine = this.value.toLowerCase();
-        
-        // Cerca sia nel Codice che nella Descrizione (Declaratoria)
-        const filtrati = datiPrezzario.filter(v => {
-            const codice = (v.Codice || "").toLowerCase();
-            const desc = (v.Declaratoria || "").toLowerCase();
-            return codice.includes(termine) || desc.includes(termine);
-        });
-        
-        stats.innerText = `Risultati trovati: ${filtrati.length.toLocaleString('it-IT')}`;
-        mostraDati(filtrati);
+    // Eventi per rendere i filtri dipendenti l'uno dall'altro
+    document.getElementById('filtroGenere').addEventListener('change', function() {
+        const fam = document.getElementById('filtroFamiglia');
+        if (this.value) {
+            fam.disabled = false;
+            popolaFiltro('filtroFamiglia', 1, this.value + ".");
+        } else {
+            fam.disabled = true;
+            document.getElementById('filtroCategoria').disabled = true;
+        }
+        aggiornaVista();
     });
 
-    // Avvia tutto al caricamento della pagina
-    caricaDati();
-</script>
+    document.getElementById('filtroFamiglia').addEventListener('change', function() {
+        const cat = document.getElementById('filtroCategoria');
+        const gen = document.getElementById('filtroGenere').value;
+        if (this.value) {
+            cat.disabled = false;
+            popolaFiltro('filtroCategoria', 2, gen + "." + this.value + ".");
+        } else {
+            cat.disabled = true;
+        }
+        aggiornaVista();
+    });
 
+    document.getElementById('filtroCategoria').addEventListener('change', aggiornaVista);
+    document.getElementById('filtroTesto').addEventListener('input', aggiornaVista);
+
+    init();
+</script>
 </body>
 </html>
