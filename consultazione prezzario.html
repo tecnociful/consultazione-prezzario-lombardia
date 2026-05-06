@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prezzario LOM26 (Velocizzato)</title>
+    <!-- Includiamo la libreria per leggere gli ZIP -->
+    <script src="https://cloudflare.com"></script>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h2 { color: #1a73e8; text-align: center; }
+        .search-box { width: 100%; padding: 15px; font-size: 16px; border: 2px solid #dfe1e5; border-radius: 8px; box-sizing: border-box; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background-color: #f8f9fa; padding: 12px; border-bottom: 2px solid #eee; text-align: left; font-size: 12px; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .codice { font-family: monospace; font-weight: bold; color: #1a73e8; }
+        .stats { font-size: 13px; color: #70757a; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Prezzario Lombardia 2026</h2>
+    <input type="text" id="filtro" class="search-box" placeholder="Cerca voce o codice...">
+    <div id="stats" class="stats">Preparazione dati (estrazione dallo ZIP)...</div>
+
+    <table id="tabella">
+        <thead>
+            <tr>
+                <th>Codice</th>
+                <th>Descrizione</th>
+                <th>Prezzo</th>
+            </tr>
+        </thead>
+        <tbody id="corpoTabella"></tbody>
+    </table>
+</div>
+
+<script>
+    let datiPrezzario = [];
+    const corpoTabella = document.getElementById('corpoTabella');
+    const stats = document.getElementById('stats');
+
+    async function caricaEScompatta() {
+        try {
+            // 1. Scarica il file ZIP
+            const response = await fetch('dati.zip');
+            const blob = await response.blob();
+            
+            // 2. Scompatta lo ZIP
+            const zip = await JSZip.loadAsync(blob);
+            // Cerca il file .json dentro lo zip (prende il primo che trova)
+            const nomeFileJson = Object.keys(zip.files).find(name => name.endsWith('.json'));
+            const contenutoJson = await zip.file(nomeFileJson).async("string");
+            
+            datiPrezzario = JSON.parse(contenutoJson);
+            stats.innerText = `Dati pronti! Totale voci: ${datiPrezzario.length}`;
+            mostraDati(datiPrezzario);
+        } catch (error) {
+            stats.innerText = "Errore nel caricamento dello ZIP. Controlla il nome del file.";
+            console.error(error);
+        }
+    }
+
+    function mostraDati(lista) {
+        const anteprima = lista.slice(0, 100); // Ne mostra 100 alla volta per velocità
+        corpoTabella.innerHTML = anteprima.map(v => `
+            <tr>
+                <td class="codice">${v.Codice || '-'}</td>
+                <td>${v.Declaratoria || '-'}</td>
+                <td style="white-space:nowrap">€ ${v.Prezzo || '0,00'}</td>
+            </tr>
+        `).join('');
+    }
+
+    document.getElementById('filtro').addEventListener('input', function() {
+        const t = this.value.toLowerCase();
+        const filtrati = datiPrezzario.filter(v => 
+            (v.Codice || "").toLowerCase().includes(t) || 
+            (v.Declaratoria || "").toLowerCase().includes(t)
+        );
+        stats.innerText = `Risultati: ${filtrati.length}`;
+        mostraDati(filtrati);
+    });
+
+    caricaEScompatta();
+</script>
+</body>
+</html>
