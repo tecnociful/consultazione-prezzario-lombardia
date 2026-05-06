@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prezzario LOM26 (Velocizzato)</title>
     <!-- Includiamo la libreria per leggere gli ZIP -->
-    <script src="https://cloudflare.com"></script>
+    <script src="https://jsdelivr.net"></script>
     <style>
         body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
@@ -45,7 +45,7 @@
     async function caricaEScompatta() {
         try {
             // 1. Scarica il file ZIP
-            const response = await fetch('dati.zip');
+            const response = await fetch('./dati.zip');
             const blob = await response.blob();
             
             // 2. Scompatta lo ZIP
