@@ -2,34 +2,39 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 - Dashboard 11 Livelli Multi-Filtro</title>
+    <title>LOM26 - Dashboard Professionale Completa</title>
     <style>
         :root { --primary: #1a73e8; --bg: #f8f9fa; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
         
         /* Sidebar Multi-Filtro */
-        .sidebar { width: 350px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
-        .sidebar h3 { margin: 8px 0 3px 0; font-size: 11px; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid #eee; padding-bottom: 2px; }
-        
+        .sidebar { width: 340px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+        .sidebar h3 { margin: 8px 0 3px 0; font-size: 11px; color: var(--primary); border-bottom: 1px solid #eee; padding-bottom: 2px; text-transform: uppercase; }
         .multi-filter-box { max-height: 130px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 4px; background: #fff; }
-        .filter-item { display: flex; align-items: center; gap: 8px; font-size: 10.5px; padding: 3px; cursor: pointer; border-radius: 3px; user-select: none; line-height: 1.2; }
+        .filter-item { display: flex; align-items: center; gap: 8px; font-size: 10.5px; padding: 3px; cursor: pointer; border-radius: 3px; user-select: none; }
         .filter-item:hover { background: #f1f3f4; }
-        .filter-item input { pointer-events: none; }
         .count { margin-left: auto; color: #888; font-size: 9px; font-weight: bold; }
 
-        /* Area Principale */
+        /* Main Area */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         header { background: white; padding: 10px 20px; border-bottom: 1px solid #dadce0; display: flex; gap: 15px; align-items: center; }
         
+        /* Tabella con Colonne Adattabili */
         .table-area { flex: 1; overflow-y: auto; background: white; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #dadce0; }
+        
+        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #dadce0; cursor: pointer; user-select: none; }
+        th:hover { background: #e8eaed; }
+        th.sort-asc::after { content: ' ▲'; font-size: 9px; }
+        th.sort-desc::after { content: ' ▼'; font-size: 9px; }
+
         td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 12.5px; vertical-align: top; cursor: pointer; }
         
         .col-cod { width: 170px; font-family: monospace; font-weight: bold; color: var(--primary); }
-        .col-pre { width: 100px; text-align: right; font-weight: bold; }
-        .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .col-descr { width: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .col-pre { width: 110px; text-align: right; font-weight: bold; }
 
+        /* Dettaglio */
         .details-row { display: none; background: #fafafa; border-left: 4px solid var(--primary); }
         .details-content { padding: 20px; font-size: 12px; line-height: 1.6; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         .btn-reset { padding: 10px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 4px; font-weight: bold; }
@@ -48,9 +53,13 @@
             <div id="stats" style="font-size:12px; font-weight:bold; color:var(--primary)">Voci: 0</div>
         </header>
         <div class="table-area">
-            <table>
+            <table id="mainTable">
                 <thead>
-                    <tr><th class="col-cod">CODICE</th><th>DESCRIZIONE</th><th class="col-pre">PREZZO</th></tr>
+                    <tr>
+                        <th id="th-Codice" class="col-cod" onclick="ordina('Codice')">CODICE</th>
+                        <th id="th-Declaratoria" class="col-descr" onclick="ordina('Declaratoria')">DESCRIZIONE</th>
+                        <th id="th-Prezzo" class="col-pre" onclick="ordina('Prezzo')">PREZZO</th>
+                    </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
             </table>
@@ -59,9 +68,10 @@
 
 <script>
     let fullData = [];
+    let filtrati = [];
     let filtriAttivi = {}; 
+    let sortConfig = { campo: 'Codice', asc: true };
 
-    // Lista completa degli 11 livelli + Settore extra
     const nomiLivelli = [
         { label: "GENERE", key: "Descr. Liv. 1" },
         { label: "MACROSETTORE", key: "Descr. Liv. 2" },
@@ -81,55 +91,54 @@
         const res = await fetch('./dati.json');
         const json = await res.json();
         fullData = Object.values(json.Ricerca || json);
-        
         nomiLivelli.forEach(l => filtriAttivi[l.key] = new Set());
-        
         const container = document.getElementById('filters-container');
         nomiLivelli.forEach(l => {
             container.innerHTML += `<h3>${l.label}</h3><div class="multi-filter-box" id="box-${l.key.replace(/ /g,'_').replace(/\./g,'')}"></div>`;
         });
-
         applicaFiltri();
     }
 
     function applicaFiltri() {
         const query = document.getElementById('search').value.toLowerCase();
-        
-        const filtrati = fullData.filter(item => {
-            if (query && !(item.Declaratoria + item.Codice).toLowerCase().includes(query)) return false;
-            for (let key in filtriAttivi) {
-                if (filtriAttivi[key].size > 0 && !filtriAttivi[key].has(item[key])) return false;
-            }
-            return true;
+        filtrati = fullData.filter(item => {
+            const matchSearch = !query || (item.Declaratoria + item.Codice).toLowerCase().includes(query);
+            const matchSelects = Object.keys(filtriAttivi).every(key => {
+                return filtriAttivi[key].size === 0 || filtriAttivi[key].has(item[key]);
+            });
+            return matchSearch && matchSelects;
         });
-
-        document.getElementById('stats').innerText = `VOCI TROVATE: ${filtrati.length}`;
+        document.getElementById('stats').innerText = `VOCI: ${filtrati.length}`;
         aggiornaBox(filtrati);
-        render(filtrati);
+        render();
     }
 
-    function aggiornaBox(datiFiltrati) {
+    function ordina(campo) {
+        sortConfig.asc = (sortConfig.campo === campo) ? !sortConfig.asc : true;
+        sortConfig.campo = campo;
+        
+        document.querySelectorAll('th').forEach(th => th.className = th.className.replace(/sort-asc|sort-desc/, '').trim());
+        document.getElementById('th-' + campo).classList.add(sortConfig.asc ? 'sort-asc' : 'sort-desc');
+
+        filtrati.sort((a, b) => {
+            let vA = a[campo], vB = b[campo];
+            if(campo === 'Prezzo') return sortConfig.asc ? vA - vB : vB - vA;
+            return sortConfig.asc ? String(vA).localeCompare(String(vB)) : String(vB).localeCompare(String(vA));
+        });
+        render();
+    }
+
+    function aggiornaBox(datiAttuali) {
         nomiLivelli.forEach(l => {
-            const boxId = `box-${l.key.replace(/ /g,'_').replace(/\./g,'')}`;
-            const box = document.getElementById(boxId);
+            const box = document.getElementById(`box-${l.key.replace(/ /g,'_').replace(/\./g,'')}`);
             const conteggi = {};
-            
-            datiFiltrati.forEach(i => {
-                const val = i[l.key] || "nd";
-                conteggi[val] = (conteggi[val] || 0) + 1;
-            });
-
-            filtriAttivi[l.key].forEach(val => {
-                if (!conteggi[val]) conteggi[val] = 0;
-            });
-
+            datiAttuali.forEach(i => { const val = i[l.key] || "nd"; conteggi[val] = (conteggi[val] || 0) + 1; });
+            filtriAttivi[l.key].forEach(val => { if (!conteggi[val]) conteggi[val] = 0; });
             const ordinati = Object.keys(conteggi).sort((a,b) => conteggi[b] - conteggi[a]);
-            
             box.innerHTML = ordinati.map(val => `
                 <div class="filter-item" onclick="toggleFiltro('${l.key}', '${val.replace(/'/g, "\\'")}')">
-                    <input type="checkbox" ${filtriAttivi[l.key].has(val) ? 'checked' : ''}>
-                    <span>${val}</span>
-                    <span class="count">${conteggi[val]}</span>
+                    <input type="checkbox" ${filtriAttivi[l.key].has(val) ? 'checked' : ''} onclick="event.stopPropagation(); toggleFiltro('${l.key}', '${val.replace(/'/g, "\\'")}')">
+                    <span>${val}</span> <span class="count">${conteggi[val]}</span>
                 </div>
             `).join('');
         });
@@ -141,24 +150,22 @@
         applicaFiltri();
     }
 
-    function render(data) {
+    function render() {
         const body = document.getElementById('tableBody');
-        body.innerHTML = data.slice(0, 50).map((v, i) => `
+        body.innerHTML = filtrati.slice(0, 50).map((v, i) => `
             <tr class="main-row" onclick="toggleDet(${i})">
                 <td class="col-cod">${v.Codice}</td>
-                <td><span class="text-truncate">${v.Declaratoria}</span></td>
+                <td class="col-descr">${v.Declaratoria}</td>
                 <td class="col-pre">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
             </tr>
             <tr id="det-${i}" class="details-row">
-                <td colspan="3">
-                    <div class="details-content">
-                        <div><strong>DESCRIZIONE</strong><br>${v.Declaratoria}</div>
-                        <div style="border-left: 1px solid #eee; padding-left: 20px;">
-                            <strong>DETTAGLI</strong><br>UM: ${v['U.M.']} | RU: ${v['Rapporto R.U.']}<br><br>
-                            ${nomiLivelli.map(nl => `<strong>${nl.label}:</strong> ${v[nl.key] || '-'}`).join('<br>')}
-                        </div>
+                <td colspan="3"><div class="details-content">
+                    <div><strong>DESCRIZIONE</strong><br>${v.Declaratoria.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:)/g, '<br><b>$1</b>')}</div>
+                    <div style="border-left:1px solid #eee; padding-left: 20px;">
+                        <strong>DETTAGLI</strong><br>UM: ${v['U.M.']} | RU: ${v['Rapporto R.U.']}<br><br>
+                        ${nomiLivelli.map(nl => `<small><b>${nl.label}:</b> ${v[nl.key] || '-'}</small>`).join('<br>')}
                     </div>
-                </td>
+                </div></td>
             </tr>
         `).join('');
     }
