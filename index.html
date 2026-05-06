@@ -2,42 +2,40 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 - Analizzatore Avanzato</title>
+    <title>LOM26 - Consultazione Agile</title>
     <style>
-        :root { --primary: #1a73e8; --bg: #f8f9fa; }
+        :root { --primary: #1a73e8; --bg: #f8f9fa; --diff-text: #d93025; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
         
-        /* Sidebar */
-        .sidebar { width: 320px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        .sidebar h3 { margin: 10px 0 5px 0; font-size: 11px; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 3px; text-transform: uppercase; }
+        .sidebar { width: 320px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .sidebar h3 { margin: 10px 0 5px 0; font-size: 11px; color: var(--primary); border-bottom: 1px solid #eee; padding-bottom: 3px; text-transform: uppercase; }
         .filter-group { display: flex; flex-direction: column; gap: 2px; }
         label { font-size: 9px; font-weight: bold; color: #5f6368; }
         select, input { padding: 6px; border: 1px solid #dadce0; border-radius: 4px; font-size: 11px; width: 100%; }
 
-        /* Main Area */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         header { background: white; padding: 10px 20px; border-bottom: 1px solid #dadce0; display: flex; gap: 15px; align-items: center; }
         
-        /* Controlli aggiuntivi */
         .toggle-btn { padding: 6px 12px; cursor: pointer; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; font-weight: bold; background: #eee; }
         .toggle-btn.active { background: #d93025; color: white; border-color: #b22a1e; }
 
-        .table-area { flex: 1; overflow-y: auto; padding: 0; }
-        table { width: 100%; border-collapse: collapse; background: white; table-layout: fixed; }
-        
+        .table-area { flex: 1; overflow-y: auto; background: white; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #dadce0; cursor: pointer; }
-        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 12px; vertical-align: top; }
         
-        .col-codice { width: 180px; font-family: monospace; font-weight: bold; color: var(--primary); }
-        .col-prezzo { width: 110px; text-align: right; font-weight: bold; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; cursor: pointer; }
+        tr.main-row:hover { background: #f8f9fa; }
+        
+        .col-cod { width: 180px; font-family: monospace; font-weight: bold; color: var(--primary); }
+        .col-pre { width: 100px; text-align: right; font-weight: bold; }
+        .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
-        /* Struttura Indentata */
-        .descr-block { margin-bottom: 4px; display: block; }
-        .indent-1 { padding-left: 0; font-weight: bold; color: #333; margin-top: 5px; }
-        .indent-2 { padding-left: 20px; color: #555; font-style: italic; }
-        .indent-3 { padding-left: 40px; color: #666; border-left: 2px solid #ddd; margin: 2px 0 2px 40px; }
-
-        .diff-text { color: #d93025; font-weight: bold; background: #fff0f0; }
+        /* Area Dettaglio Espandibile */
+        .details-row { display: none; background: #fafafa; border-left: 4px solid var(--primary); }
+        .details-content { padding: 20px; font-size: 12px; line-height: 1.6; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .descr-indent { display: block; margin-top: 5px; }
+        .indent-mark { font-weight: bold; color: #333; display: block; margin-top: 8px; }
+        .diff-mark { color: var(--diff-text); font-weight: bold; background: #fff0f0; }
     </style>
 </head>
 <body>
@@ -45,24 +43,22 @@
     <aside class="sidebar">
         <button onclick="resetTutto()" style="padding:10px; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:4px; font-size:11px; font-weight:bold;">RESET FILTRI</button>
         <div id="livelli-container"></div>
-        <h3>Parametri</h3>
-        <div class="filter-group"><label>Settore Merceologico</label><select id="f-Settore"><option value="">Tutti</option></select></div>
     </aside>
 
     <main class="main">
         <header>
             <input type="text" id="search" placeholder="🔍 Cerca nel testo o codice..." style="flex:1; padding: 8px 15px; border-radius: 20px; border: 1px solid #ccc;">
-            <button id="btnDiff" class="toggle-btn" onclick="toggleDiff()">EVIDENZIA DIFFERENZE: OFF</button>
+            <button id="btnDiff" class="toggle-btn" onclick="toggleDiff()">CONFRONTO DIFF: OFF</button>
             <div id="stats" style="font-size:12px; font-weight:bold; color:var(--primary)">Voci: 0</div>
         </header>
 
         <div class="table-area">
-            <table>
+            <table id="mainTable">
                 <thead>
                     <tr>
-                        <th class="col-codice" onclick="ordina('Codice')">CODICE</th>
-                        <th onclick="ordina('Declaratoria')">DESCRIZIONE STRUTTURATA (Clicca per ordinare)</th>
-                        <th class="col-prezzo" onclick="ordina('Prezzo')">PREZZO</th>
+                        <th class="col-cod" onclick="ordina('Codice')">CODICE</th>
+                        <th onclick="ordina('Declaratoria')">DESCRIZIONE (Clicca per espandere)</th>
+                        <th class="col-pre" onclick="ordina('Prezzo')">PREZZO</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -76,69 +72,50 @@
     let showDiff = false;
     let sortConfig = { campo: 'Codice', asc: true };
 
-    const nomiLivelli = ["GENERE", "MACROSETTORE", "SETTORE", "MANUFATTO/DESTINAZIONE", "INTERVENTO", "ATTIVITÀ", "LAVORAZIONE", "DISCIPLINA", "SISTEMA", "UNITÀ TECNOLOGICA", "MATERIA"];
-    const configFiltri = { 'f-Settore': 'Settore merceologico' };
-    nomiLivelli.forEach((n, i) => configFiltri[`f-Liv${i+1}`] = `Descr. Liv. ${i+1}`);
+    const nomiLivelli = ["GENERE", "MACROSETTORE", "SETTORE", "MANUFATTO", "INTERVENTO", "ATTIVITÀ", "LAVORAZIONE", "DISCIPLINA", "SISTEMA", "UNITÀ TECNOLOGICA", "MATERIA"];
+    const configFiltri = nomiLivelli.reduce((acc, n, i) => ({...acc, [`f-Liv${i+1}`]: `Descr. Liv. ${i+1}`}), {});
 
     async function init() {
         const res = await fetch('./dati.json');
         const json = await res.json();
         fullData = Object.values(json.Ricerca || json);
-        
         const container = document.getElementById('livelli-container');
-        nomiLivelli.forEach((nome, i) => {
-            container.innerHTML += `<h3>${nome}</h3><div class="filter-group"><select id="f-Liv${i+1}"></select></div>`;
-        });
-
+        nomiLivelli.forEach((n, i) => container.innerHTML += `<h3>${n}</h3><div class="filter-group"><select id="f-Liv${i+1}"></select></div>`);
         applicaFiltri();
     }
 
     function toggleDiff() {
         showDiff = !showDiff;
         const btn = document.getElementById('btnDiff');
-        btn.innerText = `EVIDENZIA DIFFERENZE: ${showDiff ? 'ON' : 'OFF'}`;
+        btn.innerText = `CONFRONTO DIFF: ${showDiff ? 'ON' : 'OFF'}`;
         btn.classList.toggle('active');
         render(datiFiltrati);
     }
 
-    // Funzione per formattare il testo come nell'immagine
-    function formattaDescrizione(testo) {
+    function formattaDettaglio(testo, precedente) {
         if (!testo) return "";
-        // Sostituisce i punti e virgola o i punti seguiti dalle keyword con dei "marker" per andare a capo
-        let formatted = testo
-            .replace(/OPERA:/g, '<span class="descr-block indent-1">OPERA:</span>')
-            .replace(/LAVORO:/g, '<span class="descr-block indent-1">LAVORO:</span>')
-            .replace(/SPECIFICHE TECNICHE:/g, '<span class="descr-block indent-2">SPECIFICHE TECNICHE:</span>')
-            .replace(/PRODOTTO SEMILAVORATO:/g, '<span class="descr-block indent-2">PRODOTTO SEMILAVORATO:</span>')
-            .replace(/Incluso:/g, '<span class="descr-block indent-2">Incluso:</span>')
-            .replace(/RM\d|LV\d|OP\d/g, match => `<span class="descr-block indent-3">${match}</span>`);
-        
-        return formatted;
-    }
-
-    function evidenziaDiff(testoCorrente, testoPrecedente) {
-        if (!showDiff || !testoPrecedente) return formattaDescrizione(testoCorrente);
-        let paroleC = testoCorrente.split(' ');
-        let paroleP = testoPrecedente.split(' ');
-        let finale = paroleC.map((p, i) => (p !== paroleP[i]) ? `<span class="diff-text">${p}</span>` : p).join(' ');
-        return formattaDescrizione(finale);
+        let elaborato = testo;
+        if (showDiff && precedente) {
+            let pC = testo.split(' '), pP = precedente.split(' ');
+            elaborato = pC.map((p, i) => (p !== pP[i]) ? `<span class="diff-mark">${p}</span>` : p).join(' ');
+        }
+        return elaborato.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:)/g, '<br><span class="indent-mark">$1</span>');
     }
 
     function ordina(campo) {
         sortConfig.asc = (sortConfig.campo === campo) ? !sortConfig.asc : true;
         sortConfig.campo = campo;
         datiFiltrati.sort((a, b) => {
-            let valA = a[campo], valB = b[campo];
-            if(campo === 'Prezzo') return sortConfig.asc ? valA - valB : valB - valA;
-            return sortConfig.asc ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+            let vA = a[campo], vB = b[campo];
+            return sortConfig.asc ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
         });
         render(datiFiltrati);
     }
 
     function applicaFiltri() {
-        const query = document.getElementById('search').value.toLowerCase();
+        const q = document.getElementById('search').value.toLowerCase();
         datiFiltrati = fullData.filter(item => {
-            if (query && !item.Declaratoria.toLowerCase().includes(query) && !item.Codice.toLowerCase().includes(query)) return false;
+            if (q && !item.Declaratoria.toLowerCase().includes(q) && !item.Codice.toLowerCase().includes(q)) return false;
             for (let id in configFiltri) {
                 const val = document.getElementById(id).value;
                 if (val && item[configFiltri[id]] !== val) return false;
@@ -146,25 +123,25 @@
             return true;
         });
         document.getElementById('stats').innerText = `VOCI: ${datiFiltrati.length}`;
-        aggiornaOpzioniFiltri(query);
+        aggiornaOpzioniFiltri(q);
         render(datiFiltrati);
     }
 
-    function aggiornaOpzioniFiltri(query) {
-        Object.keys(configFiltri).forEach(idSelect => {
-            const select = document.getElementById(idSelect);
+    function aggiornaOpzioniFiltri(q) {
+        Object.keys(configFiltri).forEach(id => {
+            const select = document.getElementById(id);
             const valAttuale = select.value;
-            const target = configFiltri[idSelect];
-            const disponibili = fullData.filter(item => {
-                if (query && !item.Declaratoria.toLowerCase().includes(query)) return false;
-                for (let id in configFiltri) {
-                    if (id === idSelect) continue;
-                    const v = document.getElementById(id).value;
-                    if (v && item[configFiltri[id]] !== v) return false;
+            const target = configFiltri[id];
+            const disp = fullData.filter(item => {
+                if (q && !item.Declaratoria.toLowerCase().includes(q)) return false;
+                for (let idOther in configFiltri) {
+                    if (idOther === id) continue;
+                    const v = document.getElementById(idOther).value;
+                    if (v && item[configFiltri[idOther]] !== v) return false;
                 }
                 return true;
             });
-            const unici = [...new Set(disponibili.map(i => i[target]).filter(v => v && v !== "nd"))].sort();
+            const unici = [...new Set(disp.map(i => i[target]).filter(v => v && v !== "nd"))].sort();
             select.innerHTML = `<option value="">Tutti (${unici.length})</option>`;
             unici.forEach(v => {
                 const opt = document.createElement('option');
@@ -179,12 +156,33 @@
     function render(data) {
         const body = document.getElementById('tableBody');
         body.innerHTML = data.slice(0, 50).map((v, i) => `
-            <tr>
-                <td class="col-codice">${v.Codice}</td>
-                <td>${evidenziaDiff(v.Declaratoria, i > 0 ? data[i-1].Declaratoria : null)}</td>
-                <td class="col-prezzo">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
+            <tr class="main-row" onclick="toggleDet(${i})">
+                <td class="col-cod">${v.Codice}</td>
+                <td><span class="text-truncate">${v.Declaratoria}</span></td>
+                <td class="col-pre">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
+            </tr>
+            <tr id="det-${i}" class="details-row">
+                <td colspan="3">
+                    <div class="details-content">
+                        <div>
+                            <strong>SCHEDA TECNICA VOCE</strong>
+                            <div class="descr-indent">${formattaDettaglio(v.Declaratoria, i > 0 ? data[i-1].Declaratoria : null)}</div>
+                        </div>
+                        <div style="border-left: 1px solid #eee; padding-left: 20px;">
+                            <strong>ATTRIBUTI</strong><br>
+                            U.M: ${v['U.M.']} | R.U.: ${v['Rapporto R.U.']}<br><br>
+                            <strong>GERARCHIA</strong><br>
+                            ${nomiLivelli.map((n, idx) => `<small><strong>${n}:</strong> ${v['Descr. Liv. '+(idx+1)] || '-'}</small>`).join('<br>')}
+                        </div>
+                    </div>
+                </td>
             </tr>
         `).join('');
+    }
+
+    function toggleDet(i) {
+        const d = document.getElementById(`det-${i}`);
+        d.style.display = d.style.display === 'table-row' ? 'none' : 'table-row';
     }
 
     function resetTutto() {
