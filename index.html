@@ -87,14 +87,20 @@
     }
 
     function aggiornaOpzioniFiltri() {
+        const query = document.getElementById('search').value.toLowerCase();
+
         Object.keys(configFiltri).forEach(idSelect => {
             const select = document.getElementById(idSelect);
             if (!select) return;
             const valoreAttuale = select.value;
             const campoTarget = configFiltri[idSelect];
 
-            // Calcola valori disponibili basandosi sugli ALTRI filtri attivi
+            // Calcola i valori disponibili basandosi su TUTTI gli altri filtri + la ricerca testuale
             const datiPerFiltro = fullData.filter(item => {
+                // 1. Controllo ricerca testuale
+                if (query && !item.Declaratoria.toLowerCase().includes(query) && !item.Codice.toLowerCase().includes(query)) return false;
+
+                // 2. Controllo altri filtri select
                 for (let id in configFiltri) {
                     if (id === idSelect) continue;
                     const valFiltro = document.getElementById(id).value;
@@ -105,7 +111,8 @@
 
             const unici = [...new Set(datiPerFiltro.map(i => i[campoTarget]).filter(v => v && v !== "nd"))].sort();
             
-            select.innerHTML = `<option value="">Tutti</option>`;
+            // Ricostruiamo le opzioni
+            select.innerHTML = `<option value="">Tutti (${unici.length})</option>`;
             unici.forEach(v => {
                 const opt = document.createElement('option');
                 opt.value = v;
@@ -113,9 +120,9 @@
                 if (v === valoreAttuale) opt.selected = true;
                 select.appendChild(opt);
             });
-            select.onchange = applicaFiltri;
         });
     }
+
 
     function applicaFiltri() {
         const query = document.getElementById('search').value.toLowerCase();
