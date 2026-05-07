@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 Dashboard - Ricerca Avanzata Multipla</title>
+    <title>LOM26 Dashboard - Ricerca Avanzata Multipla & Ordinamento</title>
     <style>
         :root { --primary: #1a73e8; --bg: #f1f3f4; --accent: #d93025; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; color: #202124; }
@@ -26,7 +26,8 @@
         /* Tabella */
         .table-area { flex: 1; overflow-y: auto; background: white; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { background: #f8f9fa; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #eee; color: #5f6368; }
+        th { background: #f8f9fa; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #eee; color: #5f6368; cursor: pointer; }
+        th:hover { background: #e8eaed; }
         td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; cursor: pointer; }
         tr.main-row:hover { background: #f8f9fa; }
         .col-cod { width: 180px; font-family: 'Roboto Mono', monospace; font-weight: bold; color: var(--primary); }
@@ -55,7 +56,11 @@
         <div class="table-area">
             <table id="mainTable">
                 <thead>
-                    <tr><th class="col-cod">CODICE</th><th>DESCRIZIONE (Clicca per dettagli)</th><th style="width:110px; text-align:right">PREZZO</th></tr>
+                    <tr>
+                        <th class="col-cod" onclick="ordina('Codice')">CODICE ↕</th>
+                        <th onclick="ordina('Declaratoria')">DESCRIZIONE ↕</th>
+                        <th style="width:110px; text-align:right" onclick="ordina('Prezzo')">PREZZO ↕</th>
+                    </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
             </table>
@@ -67,6 +72,7 @@
     let filtriAttivi = {}; 
     let showDiff = false;
     let datiFiltratiCorrenti = [];
+    let sortConfig = { campo: 'Codice', asc: true };
 
     const campi = {
         "GENERE": "Descr. Liv. 1",
@@ -107,6 +113,18 @@
         render(datiFiltratiCorrenti);
     }
 
+    function ordina(campo) {
+        sortConfig.asc = (sortConfig.campo === campo) ? !sortConfig.asc : true;
+        sortConfig.campo = campo;
+        
+        datiFiltratiCorrenti.sort((a, b) => {
+            let valA = a[campo], valB = b[campo];
+            if(campo === 'Prezzo') return sortConfig.asc ? valA - valB : valB - valA;
+            return sortConfig.asc ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+        });
+        render(datiFiltratiCorrenti);
+    }
+
     function formattaDettaglio(testo, precedente) {
         if (!testo) return "";
         let out = testo;
@@ -118,14 +136,10 @@
     }
 
     function aggiornaEApplica() {
-        // Separiamo la stringa di ricerca in un array di singole parole, escludendo gli spazi vuoti
         const terminiRicerca = document.getElementById('search').value.toLowerCase().split(' ').filter(t => t.length > 0);
         
-        // 1. Filtraggio principale della tabella
         datiFiltratiCorrenti = fullData.filter(item => {
             const testoVoce = ((item.Declaratoria || "") + " " + (item.Codice || "")).toLowerCase();
-            
-            // Verifica che OGNI termine inserito sia presente nella stringa della voce
             const matchSearch = terminiRicerca.every(termine => testoVoce.includes(termine));
             
             let matchFiltri = true;
@@ -137,7 +151,10 @@
             return matchSearch && matchFiltri;
         });
 
-        // 2. Aggiornamento dinamico delle checkbox e dei rispettivi contatori numerici
+        // Applica l'ordinamento corrente dopo il filtraggio
+        ordina(sortConfig.campo);
+
+        // Aggiornamento Box Checkbox
         Object.keys(campi).forEach(titolo => {
             const idBox = `box-${titolo.replace(/\//g,'-')}`;
             const box = document.getElementById(idBox);
@@ -218,6 +235,7 @@
     function resetTutto() {
         Object.keys(filtriAttivi).forEach(t => filtriAttivi[t] = []);
         document.getElementById('search').value = "";
+        sortConfig = { campo: 'Codice', asc: true };
         aggiornaEApplica();
     }
 
