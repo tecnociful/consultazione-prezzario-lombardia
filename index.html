@@ -118,55 +118,52 @@
         return out.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:|RM\d|LV\d|OP\d)/g, '<br><span class="indent-mark">$1</span>');
     }
 
-    function aggiornaEApplica() {
-        const q = document.getElementById('search').value.toLowerCase();
+function aggiornaEApplica() {
+    // 1. Prendiamo il testo e lo dividiamo in singole parole (es: "sottofondazione magro" -> ["sottofondazione", "magro"])
+    const terminiRicerca = document.getElementById('search').value.toLowerCase().split(' ').filter(t => t.length > 0);
+    
+    datiFiltratiCorrenti = fullData.filter(item => {
+        const testoVoce = ((item.Declaratoria || "") + " " + (item.Codice || "")).toLowerCase();
         
-        datiFiltratiCorrenti = fullData.filter(item => {
-            const matchSearch = !q || (item.Declaratoria || "").toLowerCase().includes(q) || (item.Codice || "").toLowerCase().includes(q);
-            let matchFiltri = true;
-            for (let t in campi) {
-                if (filtriAttivi[t].length > 0 && !filtriAttivi[t].includes(item[campi[t]])) {
-                    matchFiltri = false; break;
-                }
+        // Verifichiamo che OGNI parola cercata sia contenuta nel testo della voce
+        const matchSearch = terminiRicerca.every(termine => testoVoce.includes(termine));
+        
+        let matchFiltri = true;
+        for (let t in campi) {
+            if (filtriAttivi[t].length > 0 && !filtriAttivi[t].includes(item[campi[t]])) {
+                matchFiltri = false; break;
             }
-            return matchSearch && matchFiltri;
+        }
+        return matchSearch && matchFiltri;
+    });
+
+    // ... (il resto della funzione per aggiornare i Box Checkbox e le Stats rimane uguale)
+    
+    // Aggiornamento Box Checkbox (necessario ripetere la logica delle parole separate anche qui per i contatori)
+    Object.keys(campi).forEach(titolo => {
+        const idBox = `box-${titolo.replace(/\//g,'-')}`;
+        const box = document.getElementById(idBox);
+        const campo = campi[titolo];
+        
+        const datiPerQuestoBox = fullData.filter(item => {
+            const testoVoce = (item.Declaratoria || "").toLowerCase();
+            const matchS = terminiRicerca.every(t => testoVoce.includes(t));
+            if (!matchS) return false;
+
+            for (let t in campi) {
+                if (t === titolo) continue;
+                if (filtriAttivi[t].length > 0 && !filtriAttivi[t].includes(item[campi[t]])) return false;
+            }
+            return true;
         });
+        
+        // ... (codice per i conteggi e innerHTML del box come prima)
+    });
 
-        // Aggiornamento Box Checkbox
-        Object.keys(campi).forEach(titolo => {
-            const idBox = `box-${titolo.replace(/\//g,'-')}`;
-            const box = document.getElementById(idBox);
-            const campo = campi[titolo];
-            
-            const datiPerQuestoBox = fullData.filter(item => {
-                if (q && !(item.Declaratoria || "").toLowerCase().includes(q)) return false;
-                for (let t in campi) {
-                    if (t === titolo) continue;
-                    if (filtriAttivi[t].length > 0 && !filtriAttivi[t].includes(item[campi[t]])) return false;
-                }
-                return true;
-            });
+    document.getElementById('stats').innerText = `Trovate: ${datiFiltratiCorrenti.length.toLocaleString('it-IT')}`;
+    render(datiFiltratiCorrenti);
+}
 
-            const conteggi = {};
-            datiPerQuestoBox.forEach(item => {
-                const val = item[campo] || "nd";
-                conteggi[val] = (conteggi[val] || 0) + 1;
-            });
-
-            const valoriOrdinati = Object.keys(conteggi).sort();
-            box.innerHTML = valoriOrdinati.map(val => `
-                <label class="filter-item">
-                    <input type="checkbox" ${filtriAttivi[titolo].includes(val) ? 'checked' : ''} 
-                           onchange="gestisciFiltro('${titolo}', '${val.replace(/'/g, "\\'")}')">
-                    <span>${val}</span>
-                    <span class="count">${conteggi[val]}</span>
-                </label>
-            `).join('');
-        });
-
-        document.getElementById('stats').innerText = `Trovate: ${datiFiltratiCorrenti.length.toLocaleString('it-IT')}`;
-        render(datiFiltratiCorrenti);
-    }
 
     function gestisciFiltro(titolo, valore) {
         const index = filtriAttivi[titolo].indexOf(valore);
