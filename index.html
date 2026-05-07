@@ -2,63 +2,66 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 - Dashboard Professionale Completa</title>
+    <title>LOM26 - Dashboard Professionale</title>
     <style>
-        :root { --primary: #1a73e8; --bg: #f8f9fa; }
+        :root { --primary: #1a73e8; --bg: #f8f9fa; --accent: #d93025; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
         
-        /* Sidebar Multi-Filtro */
-        .sidebar { width: 340px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
-        .sidebar h3 { margin: 8px 0 3px 0; font-size: 11px; color: var(--primary); border-bottom: 1px solid #eee; padding-bottom: 2px; text-transform: uppercase; }
-        .multi-filter-box { max-height: 130px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; padding: 4px; background: #fff; }
-        .filter-item { display: flex; align-items: center; gap: 8px; font-size: 10.5px; padding: 3px; cursor: pointer; border-radius: 3px; user-select: none; }
-        .filter-item:hover { background: #f1f3f4; }
-        .count { margin-left: auto; color: #888; font-size: 9px; font-weight: bold; }
+        /* Sidebar */
+        .sidebar { width: 320px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .sidebar h3 { margin: 10px 0 5px 0; font-size: 11px; color: var(--primary); border-bottom: 1px solid #eee; padding-bottom: 3px; text-transform: uppercase; }
+        .filter-group { display: flex; flex-direction: column; gap: 2px; }
+        label { font-size: 9px; font-weight: bold; color: #5f6368; }
+        select, input { padding: 6px; border: 1px solid #dadce0; border-radius: 4px; font-size: 11px; width: 100%; }
 
         /* Main Area */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         header { background: white; padding: 10px 20px; border-bottom: 1px solid #dadce0; display: flex; gap: 15px; align-items: center; }
         
-        /* Tabella con Colonne Adattabili */
+        /* Tasto Differenze Speciale */
+        .btn-diff { padding: 8px 16px; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; font-size: 11px; font-weight: bold; background: #fff; transition: 0.3s; }
+        .btn-diff.active { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
         .table-area { flex: 1; overflow-y: auto; background: white; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #dadce0; cursor: pointer; }
         
-        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #dadce0; cursor: pointer; user-select: none; }
-        th:hover { background: #e8eaed; }
-        th.sort-asc::after { content: ' ▲'; font-size: 9px; }
-        th.sort-desc::after { content: ' ▼'; font-size: 9px; }
-
-        td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 12.5px; vertical-align: top; cursor: pointer; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; cursor: pointer; }
+        tr.main-row:hover { background: #f1f3f4; }
         
-        .col-cod { width: 170px; font-family: monospace; font-weight: bold; color: var(--primary); }
-        .col-descr { width: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .col-pre { width: 110px; text-align: right; font-weight: bold; }
+        .col-cod { width: 180px; font-family: monospace; font-weight: bold; color: var(--primary); }
+        .col-pre { width: 100px; text-align: right; font-weight: bold; }
+        .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
 
-        /* Dettaglio */
+        /* Area Dettaglio Espandibile */
         .details-row { display: none; background: #fafafa; border-left: 4px solid var(--primary); }
         .details-content { padding: 20px; font-size: 12px; line-height: 1.6; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        .btn-reset { padding: 10px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 4px; font-weight: bold; }
+        .indent-mark { font-weight: bold; color: #333; display: block; margin-top: 8px; border-bottom: 1px solid #eee; }
+        .diff-mark { color: var(--accent); font-weight: bold; background: #fff0f0; padding: 0 2px; border-radius: 2px; }
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
-        <button onclick="resetTutto()" class="btn-reset">RESET FILTRI</button>
-        <div id="filters-container"></div>
+        <button onclick="resetTutto()" style="padding:10px; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:4px; font-size:11px; font-weight:bold;">RESET FILTRI</button>
+        <div id="livelli-container"></div>
     </aside>
 
     <main class="main">
         <header>
             <input type="text" id="search" placeholder="🔍 Cerca nel testo o codice..." style="flex:1; padding: 8px 15px; border-radius: 20px; border: 1px solid #ccc;">
+            <!-- Tasto Evidenzia Differenze -->
+            <button id="btnDiff" class="btn-diff" onclick="toggleDiff()">EVIDENZIA DIFFERENZE: OFF</button>
             <div id="stats" style="font-size:12px; font-weight:bold; color:var(--primary)">Voci: 0</div>
         </header>
+
         <div class="table-area">
             <table id="mainTable">
                 <thead>
                     <tr>
-                        <th id="th-Codice" class="col-cod" onclick="ordina('Codice')">CODICE</th>
-                        <th id="th-Declaratoria" class="col-descr" onclick="ordina('Declaratoria')">DESCRIZIONE</th>
-                        <th id="th-Prezzo" class="col-pre" onclick="ordina('Prezzo')">PREZZO</th>
+                        <th class="col-cod" onclick="ordina('Codice')">CODICE</th>
+                        <th onclick="ordina('Declaratoria')">DESCRIZIONE (Clicca la riga per espandere)</th>
+                        <th class="col-pre" onclick="ordina('Prezzo')">PREZZO</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -68,104 +71,119 @@
 
 <script>
     let fullData = [];
-    let filtrati = [];
-    let filtriAttivi = {}; 
+    let datiFiltrati = [];
+    let showDiff = false;
     let sortConfig = { campo: 'Codice', asc: true };
 
-    const nomiLivelli = [
-        { label: "GENERE", key: "Descr. Liv. 1" },
-        { label: "MACROSETTORE", key: "Descr. Liv. 2" },
-        { label: "SETTORE", key: "Descr. Liv. 3" },
-        { label: "MANUFATTO", key: "Descr. Liv. 4" },
-        { label: "INTERVENTO", key: "Descr. Liv. 5" },
-        { label: "ATTIVITÀ", key: "Descr. Liv. 6" },
-        { label: "LAVORAZIONE", key: "Descr. Liv. 7" },
-        { label: "DISCIPLINA", key: "Descr. Liv. 8" },
-        { label: "SISTEMA", key: "Descr. Liv. 9" },
-        { label: "UNITÀ TECNOLOGICA", key: "Descr. Liv. 10" },
-        { label: "MATERIA", key: "Descr. Liv. 11" },
-        { label: "SETTORE MERCEOLOGICO", key: "Settore merceologico" }
-    ];
+    const nomiLivelli = ["GENERE", "MACROSETTORE", "SETTORE", "MANUFATTO", "INTERVENTO", "ATTIVITÀ", "LAVORAZIONE", "DISCIPLINA", "SISTEMA", "UNITÀ TECNOLOGICA", "MATERIA"];
+    const configFiltri = nomiLivelli.reduce((acc, n, i) => ({...acc, [`f-Liv${i+1}`]: `Descr. Liv. ${i+1}`}), {});
 
     async function init() {
         const res = await fetch('./dati.json');
         const json = await res.json();
         fullData = Object.values(json.Ricerca || json);
-        nomiLivelli.forEach(l => filtriAttivi[l.key] = new Set());
-        const container = document.getElementById('filters-container');
-        nomiLivelli.forEach(l => {
-            container.innerHTML += `<h3>${l.label}</h3><div class="multi-filter-box" id="box-${l.key.replace(/ /g,'_').replace(/\./g,'')}"></div>`;
-        });
+        const container = document.getElementById('livelli-container');
+        nomiLivelli.forEach((n, i) => container.innerHTML += `<h3>${n}</h3><div class="filter-group"><select id="f-Liv${i+1}"></select></div>`);
         applicaFiltri();
     }
 
-    function applicaFiltri() {
-        const query = document.getElementById('search').value.toLowerCase();
-        filtrati = fullData.filter(item => {
-            const matchSearch = !query || (item.Declaratoria + item.Codice).toLowerCase().includes(query);
-            const matchSelects = Object.keys(filtriAttivi).every(key => {
-                return filtriAttivi[key].size === 0 || filtriAttivi[key].has(item[key]);
-            });
-            return matchSearch && matchSelects;
-        });
-        document.getElementById('stats').innerText = `VOCI: ${filtrati.length}`;
-        aggiornaBox(filtrati);
-        render();
+    function toggleDiff() {
+        showDiff = !showDiff;
+        const btn = document.getElementById('btnDiff');
+        btn.innerText = `EVIDENZIA DIFFERENZE: ${showDiff ? 'ON' : 'OFF'}`;
+        btn.classList.toggle('active');
+        render(datiFiltrati); // Forza il ricalcolo della tabella
+    }
+
+    function formattaDettaglio(testo, precedente) {
+        if (!testo) return "";
+        let elaborato = testo;
+        
+        // Applica evidenziazione differenze solo se il tasto è su ON
+        if (showDiff && precedente) {
+            let pC = testo.split(' ');
+            let pP = precedente.split(' ');
+            elaborato = pC.map((parola, i) => (parola !== pP[i]) ? `<span class="diff-mark">${parola}</span>` : parola).join(' ');
+        }
+        
+        // Aggiunge i ritorni a capo per i termini tecnici
+        return elaborato.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:|RM\d|LV\d|OP\d)/g, '<br><span class="indent-mark">$1</span>');
     }
 
     function ordina(campo) {
         sortConfig.asc = (sortConfig.campo === campo) ? !sortConfig.asc : true;
         sortConfig.campo = campo;
-        
-        document.querySelectorAll('th').forEach(th => th.className = th.className.replace(/sort-asc|sort-desc/, '').trim());
-        document.getElementById('th-' + campo).classList.add(sortConfig.asc ? 'sort-asc' : 'sort-desc');
-
-        filtrati.sort((a, b) => {
+        datiFiltrati.sort((a, b) => {
             let vA = a[campo], vB = b[campo];
-            if(campo === 'Prezzo') return sortConfig.asc ? vA - vB : vB - vA;
-            return sortConfig.asc ? String(vA).localeCompare(String(vB)) : String(vB).localeCompare(String(vA));
+            return sortConfig.asc ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
         });
-        render();
+        render(datiFiltrati);
     }
 
-    function aggiornaBox(datiAttuali) {
-        nomiLivelli.forEach(l => {
-            const box = document.getElementById(`box-${l.key.replace(/ /g,'_').replace(/\./g,'')}`);
-            const conteggi = {};
-            datiAttuali.forEach(i => { const val = i[l.key] || "nd"; conteggi[val] = (conteggi[val] || 0) + 1; });
-            filtriAttivi[l.key].forEach(val => { if (!conteggi[val]) conteggi[val] = 0; });
-            const ordinati = Object.keys(conteggi).sort((a,b) => conteggi[b] - conteggi[a]);
-            box.innerHTML = ordinati.map(val => `
-                <div class="filter-item" onclick="toggleFiltro('${l.key}', '${val.replace(/'/g, "\\'")}')">
-                    <input type="checkbox" ${filtriAttivi[l.key].has(val) ? 'checked' : ''} onclick="event.stopPropagation(); toggleFiltro('${l.key}', '${val.replace(/'/g, "\\'")}')">
-                    <span>${val}</span> <span class="count">${conteggi[val]}</span>
-                </div>
-            `).join('');
+    function applicaFiltri() {
+        const q = document.getElementById('search').value.toLowerCase();
+        datiFiltrati = fullData.filter(item => {
+            if (q && !item.Declaratoria.toLowerCase().includes(q) && !item.Codice.toLowerCase().includes(q)) return false;
+            for (let id in configFiltri) {
+                const val = document.getElementById(id).value;
+                if (val && item[configFiltri[id]] !== val) return false;
+            }
+            return true;
+        });
+        document.getElementById('stats').innerText = `VOCI: ${datiFiltrati.length}`;
+        aggiornaOpzioniFiltri(q);
+        render(datiFiltrati);
+    }
+
+    function aggiornaOpzioniFiltri(q) {
+        Object.keys(configFiltri).forEach(id => {
+            const select = document.getElementById(id);
+            const valAttuale = select.value;
+            const target = configFiltri[id];
+            const disp = fullData.filter(item => {
+                if (q && !item.Declaratoria.toLowerCase().includes(q)) return false;
+                for (let idOther in configFiltri) {
+                    if (idOther === id) continue;
+                    const v = document.getElementById(idOther).value;
+                    if (v && item[configFiltri[idOther]] !== v) return false;
+                }
+                return true;
+            });
+            const unici = [...new Set(disp.map(i => i[target]).filter(v => v && v !== "nd"))].sort();
+            select.innerHTML = `<option value="">Tutti (${unici.length})</option>`;
+            unici.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v; opt.textContent = v;
+                if (v === valAttuale) opt.selected = true;
+                select.appendChild(opt);
+            });
+            select.onchange = applicaFiltri;
         });
     }
 
-    function toggleFiltro(key, val) {
-        if (filtriAttivi[key].has(val)) filtriAttivi[key].delete(val);
-        else filtriAttivi[key].add(val);
-        applicaFiltri();
-    }
-
-    function render() {
+    function render(data) {
         const body = document.getElementById('tableBody');
-        body.innerHTML = filtrati.slice(0, 50).map((v, i) => `
+        body.innerHTML = data.slice(0, 50).map((v, i) => `
             <tr class="main-row" onclick="toggleDet(${i})">
                 <td class="col-cod">${v.Codice}</td>
-                <td class="col-descr">${v.Declaratoria}</td>
+                <td><span class="text-truncate">${v.Declaratoria}</span></td>
                 <td class="col-pre">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
             </tr>
             <tr id="det-${i}" class="details-row">
-                <td colspan="3"><div class="details-content">
-                    <div><strong>DESCRIZIONE</strong><br>${v.Declaratoria.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:)/g, '<br><b>$1</b>')}</div>
-                    <div style="border-left:1px solid #eee; padding-left: 20px;">
-                        <strong>DETTAGLI</strong><br>UM: ${v['U.M.']} | RU: ${v['Rapporto R.U.']}<br><br>
-                        ${nomiLivelli.map(nl => `<small><b>${nl.label}:</b> ${v[nl.key] || '-'}</small>`).join('<br>')}
+                <td colspan="3">
+                    <div class="details-content">
+                        <div>
+                            <strong>DETTAGLIO VOCE</strong>
+                            <div style="margin-top:10px;">${formattaDettaglio(v.Declaratoria, i > 0 ? data[i-1].Declaratoria : null)}</div>
+                        </div>
+                        <div style="border-left: 1px solid #eee; padding-left: 20px;">
+                            <strong>INFO AGGIUNTIVE</strong><br>
+                            <small>U.M: ${v['U.M.']} | R.U.: ${v['Rapporto R.U.']}</small><br><br>
+                            <strong>GERARCHIA</strong><br>
+                            ${nomiLivelli.map((n, idx) => `<div style="font-size:10px; border-bottom:1px solid #eee; padding:2px 0;"><strong>${n}:</strong> ${v['Descr. Liv. '+(idx+1)] || '-'}</div>`).join('')}
+                        </div>
                     </div>
-                </div></td>
+                </td>
             </tr>
         `).join('');
     }
@@ -176,7 +194,7 @@
     }
 
     function resetTutto() {
-        nomiLivelli.forEach(l => filtriAttivi[l.key].clear());
+        document.querySelectorAll('select').forEach(s => s.value = "");
         document.getElementById('search').value = "";
         applicaFiltri();
     }
