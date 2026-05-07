@@ -2,57 +2,59 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 - Dashboard Professionale</title>
+    <title>LOM26 - Dashboard Agile</title>
     <style>
         :root { --primary: #1a73e8; --bg: #f8f9fa; --accent: #d93025; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
         
-        /* Sidebar */
-        .sidebar { width: 320px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-        .sidebar h3 { margin: 10px 0 5px 0; font-size: 11px; color: var(--primary); border-bottom: 1px solid #eee; padding-bottom: 3px; text-transform: uppercase; }
+        /* Sidebar con filtri LIBERI */
+        .sidebar { width: 340px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .sidebar h3 { margin: 10px 0 5px 0; font-size: 12px; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 3px; text-transform: uppercase; }
         .filter-group { display: flex; flex-direction: column; gap: 2px; }
-        label { font-size: 9px; font-weight: bold; color: #5f6368; }
-        select, input { padding: 6px; border: 1px solid #dadce0; border-radius: 4px; font-size: 11px; width: 100%; }
+        label { font-size: 10px; font-weight: bold; color: #5f6368; }
+        select, input { padding: 6px; border: 1px solid #dadce0; border-radius: 4px; font-size: 12px; width: 100%; box-sizing: border-box; }
 
         /* Main Area */
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         header { background: white; padding: 10px 20px; border-bottom: 1px solid #dadce0; display: flex; gap: 15px; align-items: center; }
         
-        /* Tasto Differenze Speciale */
-        .btn-diff { padding: 8px 16px; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; font-size: 11px; font-weight: bold; background: #fff; transition: 0.3s; }
-        .btn-diff.active { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .btn-diff { padding: 8px 16px; cursor: pointer; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; font-weight: bold; background: #fff; transition: 0.3s; white-space: nowrap; }
+        .btn-diff.active { background: var(--accent); color: white; border-color: var(--accent); }
 
+        /* Tabella Pulita */
         .table-area { flex: 1; overflow-y: auto; background: white; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #dadce0; cursor: pointer; }
         
         td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; cursor: pointer; }
-        tr.main-row:hover { background: #f1f3f4; }
+        tr.main-row:hover { background: #f8f9fa; }
         
         .col-cod { width: 180px; font-family: monospace; font-weight: bold; color: var(--primary); }
         .col-pre { width: 100px; text-align: right; font-weight: bold; }
-        .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
+        .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
-        /* Area Dettaglio Espandibile */
-        .details-row { display: none; background: #fafafa; border-left: 4px solid var(--primary); }
+        /* Dettaglio Espandibile */
+        .details-row { display: none; background: #fafafa; border-left: 5px solid var(--primary); }
         .details-content { padding: 20px; font-size: 12px; line-height: 1.6; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         .indent-mark { font-weight: bold; color: #333; display: block; margin-top: 8px; border-bottom: 1px solid #eee; }
-        .diff-mark { color: var(--accent); font-weight: bold; background: #fff0f0; padding: 0 2px; border-radius: 2px; }
+        .diff-mark { color: var(--accent); font-weight: bold; background: #fff0f0; padding: 0 2px; }
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
-        <button onclick="resetTutto()" style="padding:10px; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:4px; font-size:11px; font-weight:bold;">RESET FILTRI</button>
-        <div id="livelli-container"></div>
+        <button onclick="resetTutto()" style="padding:10px; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:4px; font-weight:bold; margin-bottom:10px;">RESET TUTTO</button>
+        <h3>Struttura</h3>
+        <div id="filtri-gerarchia"></div>
+        <h3>Parametri</h3>
+        <div class="filter-group"><label>SETTORE MERCEOLOGICO</label><select id="f-Settore"><option value="">Tutti</option></select></div>
     </aside>
 
     <main class="main">
         <header>
-            <input type="text" id="search" placeholder="🔍 Cerca nel testo o codice..." style="flex:1; padding: 8px 15px; border-radius: 20px; border: 1px solid #ccc;">
-            <!-- Tasto Evidenzia Differenze -->
-            <button id="btnDiff" class="btn-diff" onclick="toggleDiff()">EVIDENZIA DIFFERENZE: OFF</button>
-            <div id="stats" style="font-size:12px; font-weight:bold; color:var(--primary)">Voci: 0</div>
+            <input type="text" id="search" placeholder="🔍 Cerca nel testo o codice..." style="flex:1; padding: 10px 15px; border-radius: 20px; border: 1px solid #ccc;">
+            <button id="btnDiff" class="btn-diff" onclick="toggleDiff()">CONFRONTO DIFFERENZE: OFF</button>
+            <div id="stats" style="font-size:12px; font-weight:bold; color:var(--primary); white-space:nowrap;">Voci: 0</div>
         </header>
 
         <div class="table-area">
@@ -60,7 +62,7 @@
                 <thead>
                     <tr>
                         <th class="col-cod" onclick="ordina('Codice')">CODICE</th>
-                        <th onclick="ordina('Declaratoria')">DESCRIZIONE (Clicca la riga per espandere)</th>
+                        <th onclick="ordina('Declaratoria')">DESCRIZIONE (Clicca per espandere)</th>
                         <th class="col-pre" onclick="ordina('Prezzo')">PREZZO</th>
                     </tr>
                 </thead>
@@ -75,48 +77,45 @@
     let showDiff = false;
     let sortConfig = { campo: 'Codice', asc: true };
 
-    const nomiLivelli = ["GENERE", "MACROSETTORE", "SETTORE", "MANUFATTO", "INTERVENTO", "ATTIVITÀ", "LAVORAZIONE", "DISCIPLINA", "SISTEMA", "UNITÀ TECNOLOGICA", "MATERIA"];
-    const configFiltri = nomiLivelli.reduce((acc, n, i) => ({...acc, [`f-Liv${i+1}`]: `Descr. Liv. ${i+1}`}), {});
+    const nomiLivelli = ["GENERE", "MACROSETTORE", "SETTORE", "MANUFATTO/DESTINAZIONE", "INTERVENTO", "ATTIVITÀ", "LAVORAZIONE", "DISCIPLINA", "SISTEMA", "UNITÀ TECNOLOGICA", "MATERIA"];
+    const configFiltri = { 'f-Settore': 'Settore merceologico' };
+    nomiLivelli.forEach((n, i) => configFiltri[`f-Liv${i+1}`] = `Descr. Liv. ${i+1}`);
 
     async function init() {
         const res = await fetch('./dati.json');
         const json = await res.json();
         fullData = Object.values(json.Ricerca || json);
-        const container = document.getElementById('livelli-container');
-        nomiLivelli.forEach((n, i) => container.innerHTML += `<h3>${n}</h3><div class="filter-group"><select id="f-Liv${i+1}"></select></div>`);
+        
+        const container = document.getElementById('filtri-gerarchia');
+        nomiLivelli.forEach((nome, i) => {
+            container.innerHTML += `<div class="filter-group"><label>${nome}</label><select id="f-Liv${i+1}"></select></div>`;
+        });
+
         applicaFiltri();
     }
 
     function toggleDiff() {
         showDiff = !showDiff;
         const btn = document.getElementById('btnDiff');
-        btn.innerText = `EVIDENZIA DIFFERENZE: ${showDiff ? 'ON' : 'OFF'}`;
+        btn.innerText = `CONFRONTO DIFFERENZE: ${showDiff ? 'ON' : 'OFF'}`;
         btn.classList.toggle('active');
-        render(datiFiltrati); // Forza il ricalcolo della tabella
+        render(datiFiltrati);
     }
 
     function formattaDettaglio(testo, precedente) {
         if (!testo) return "";
-        let elaborato = testo;
-        
-        // Applica evidenziazione differenze solo se il tasto è su ON
+        let out = testo;
         if (showDiff && precedente) {
-            let pC = testo.split(' ');
-            let pP = precedente.split(' ');
-            elaborato = pC.map((parola, i) => (parola !== pP[i]) ? `<span class="diff-mark">${parola}</span>` : parola).join(' ');
+            let pC = testo.split(' '), pP = precedente.split(' ');
+            out = pC.map((p, i) => (p !== pP[i]) ? `<span class="diff-mark">${p}</span>` : p).join(' ');
         }
-        
-        // Aggiunge i ritorni a capo per i termini tecnici
-        return elaborato.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:|RM\d|LV\d|OP\d)/g, '<br><span class="indent-mark">$1</span>');
+        return out.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:|RM\d|LV\d|OP\d)/g, '<br><span class="indent-mark">$1</span>');
     }
 
     function ordina(campo) {
         sortConfig.asc = (sortConfig.campo === campo) ? !sortConfig.asc : true;
         sortConfig.campo = campo;
-        datiFiltrati.sort((a, b) => {
-            let vA = a[campo], vB = b[campo];
-            return sortConfig.asc ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
-        });
+        datiFiltrati.sort((a, b) => (sortConfig.asc ? (a[campo] > b[campo] ? 1 : -1) : (a[campo] < b[campo] ? 1 : -1)));
         render(datiFiltrati);
     }
 
@@ -130,26 +129,29 @@
             }
             return true;
         });
-        document.getElementById('stats').innerText = `VOCI: ${datiFiltrati.length}`;
-        aggiornaOpzioniFiltri(q);
+        document.getElementById('stats').innerText = `Trovate: ${datiFiltrati.length}`;
+        aggiornaTendine(q);
         render(datiFiltrati);
     }
 
-    function aggiornaOpzioniFiltri(q) {
+    function aggiornaTendine(q) {
         Object.keys(configFiltri).forEach(id => {
             const select = document.getElementById(id);
             const valAttuale = select.value;
-            const target = configFiltri[id];
-            const disp = fullData.filter(item => {
+            const campo = configFiltri[id];
+            
+            // Logica BIDIREZIONALE: i filtri mostrano solo cosa resta dopo search + ALTRI filtri
+            const disponibili = fullData.filter(item => {
                 if (q && !item.Declaratoria.toLowerCase().includes(q)) return false;
-                for (let idOther in configFiltri) {
-                    if (idOther === id) continue;
-                    const v = document.getElementById(idOther).value;
-                    if (v && item[configFiltri[idOther]] !== v) return false;
+                for (let idAltro in configFiltri) {
+                    if (idAltro === id) continue;
+                    const valAltro = document.getElementById(idAltro).value;
+                    if (valAltro && item[configFiltri[idAltro]] !== valAltro) return false;
                 }
                 return true;
             });
-            const unici = [...new Set(disp.map(i => i[target]).filter(v => v && v !== "nd"))].sort();
+
+            const unici = [...new Set(disponibili.map(i => i[campo]).filter(v => v && v !== "nd"))].sort();
             select.innerHTML = `<option value="">Tutti (${unici.length})</option>`;
             unici.forEach(v => {
                 const opt = document.createElement('option');
@@ -163,7 +165,7 @@
 
     function render(data) {
         const body = document.getElementById('tableBody');
-        body.innerHTML = data.slice(0, 50).map((v, i) => `
+        body.innerHTML = data.slice(0, 80).map((v, i) => `
             <tr class="main-row" onclick="toggleDet(${i})">
                 <td class="col-cod">${v.Codice}</td>
                 <td><span class="text-truncate">${v.Declaratoria}</span></td>
@@ -173,14 +175,13 @@
                 <td colspan="3">
                     <div class="details-content">
                         <div>
-                            <strong>DETTAGLIO VOCE</strong>
+                            <strong>DESCRIZIONE STRUTTURATA</strong>
                             <div style="margin-top:10px;">${formattaDettaglio(v.Declaratoria, i > 0 ? data[i-1].Declaratoria : null)}</div>
                         </div>
                         <div style="border-left: 1px solid #eee; padding-left: 20px;">
-                            <strong>INFO AGGIUNTIVE</strong><br>
-                            <small>U.M: ${v['U.M.']} | R.U.: ${v['Rapporto R.U.']}</small><br><br>
-                            <strong>GERARCHIA</strong><br>
-                            ${nomiLivelli.map((n, idx) => `<div style="font-size:10px; border-bottom:1px solid #eee; padding:2px 0;"><strong>${n}:</strong> ${v['Descr. Liv. '+(idx+1)] || '-'}</div>`).join('')}
+                            <strong>SCHEDA TECNICA</strong><br>
+                            U.M: ${v['U.M.']} | R.U.: ${v['Rapporto R.U.']}<br><br>
+                            ${nomiLivelli.map((n, idx) => `<div style="font-size:10px; margin-bottom:2px;"><strong>${n}:</strong> ${v['Descr. Liv. '+(idx+1)] || '-'}</div>`).join('')}
                         </div>
                     </div>
                 </td>
