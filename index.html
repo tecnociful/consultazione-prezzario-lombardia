@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 Dashboard - 11 Livelli Multi-Selezione</title>
+    <title>LOM26 Dashboard - Ricerca Avanzata Multipla</title>
     <style>
         :root { --primary: #1a73e8; --bg: #f1f3f4; --accent: #d93025; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; color: #202124; }
@@ -48,7 +48,7 @@
 
     <main class="main">
         <header>
-            <input type="text" id="search" placeholder="🔍 Cerca testo o codice (es: piscina, calcestruzzo...)" style="flex:1; padding: 10px 18px; border-radius: 25px; border: 1px solid #dadce0; font-size: 14px; outline: none;">
+            <input type="text" id="search" placeholder="🔍 Inserisci parole separate (es: sottofondazione c16/20 aggregati)..." style="flex:1; padding: 10px 18px; border-radius: 25px; border: 1px solid #dadce0; font-size: 14px; outline: none;">
             <button id="btnDiff" class="btn-diff" onclick="toggleDiff()">CONFRONTO DIFF: OFF</button>
             <div id="stats" style="font-size:12px; font-weight:bold; color:var(--primary); background: #e8f0fe; padding: 6px 15px; border-radius: 15px;">Voci: 0</div>
         </header>
@@ -68,7 +68,6 @@
     let showDiff = false;
     let datiFiltratiCorrenti = [];
 
-    // Mappatura completa degli 11 titoli richiesti
     const campi = {
         "GENERE": "Descr. Liv. 1",
         "MACROSETTORE": "Descr. Liv. 2",
@@ -77,7 +76,7 @@
         "INTERVENTO": "Descr. Liv. 5",
         "ATTIVITÀ": "Descr. Liv. 6",
         "LAVORAZIONE": "Descr. Liv. 7",
-        "DISCIPLINA": "Descr. Liv. 8", // In base al tuo schema
+        "DISCIPLINA": "Descr. Liv. 8",
         "SISTEMA": "Descr. Liv. 9",
         "UNITÀ TECNOLOGICA": "Descr. Liv. 10",
         "MATERIA": "Descr. Liv. 11",
@@ -118,52 +117,64 @@
         return out.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:|RM\d|LV\d|OP\d)/g, '<br><span class="indent-mark">$1</span>');
     }
 
-function aggiornaEApplica() {
-    // 1. Prendiamo il testo e lo dividiamo in singole parole (es: "sottofondazione magro" -> ["sottofondazione", "magro"])
-    const terminiRicerca = document.getElementById('search').value.toLowerCase().split(' ').filter(t => t.length > 0);
-    
-    datiFiltratiCorrenti = fullData.filter(item => {
-        const testoVoce = ((item.Declaratoria || "") + " " + (item.Codice || "")).toLowerCase();
+    function aggiornaEApplica() {
+        // Separiamo la stringa di ricerca in un array di singole parole, escludendo gli spazi vuoti
+        const terminiRicerca = document.getElementById('search').value.toLowerCase().split(' ').filter(t => t.length > 0);
         
-        // Verifichiamo che OGNI parola cercata sia contenuta nel testo della voce
-        const matchSearch = terminiRicerca.every(termine => testoVoce.includes(termine));
-        
-        let matchFiltri = true;
-        for (let t in campi) {
-            if (filtriAttivi[t].length > 0 && !filtriAttivi[t].includes(item[campi[t]])) {
-                matchFiltri = false; break;
-            }
-        }
-        return matchSearch && matchFiltri;
-    });
-
-    // ... (il resto della funzione per aggiornare i Box Checkbox e le Stats rimane uguale)
-    
-    // Aggiornamento Box Checkbox (necessario ripetere la logica delle parole separate anche qui per i contatori)
-    Object.keys(campi).forEach(titolo => {
-        const idBox = `box-${titolo.replace(/\//g,'-')}`;
-        const box = document.getElementById(idBox);
-        const campo = campi[titolo];
-        
-        const datiPerQuestoBox = fullData.filter(item => {
-            const testoVoce = (item.Declaratoria || "").toLowerCase();
-            const matchS = terminiRicerca.every(t => testoVoce.includes(t));
-            if (!matchS) return false;
-
+        // 1. Filtraggio principale della tabella
+        datiFiltratiCorrenti = fullData.filter(item => {
+            const testoVoce = ((item.Declaratoria || "") + " " + (item.Codice || "")).toLowerCase();
+            
+            // Verifica che OGNI termine inserito sia presente nella stringa della voce
+            const matchSearch = terminiRicerca.every(termine => testoVoce.includes(termine));
+            
+            let matchFiltri = true;
             for (let t in campi) {
-                if (t === titolo) continue;
-                if (filtriAttivi[t].length > 0 && !filtriAttivi[t].includes(item[campi[t]])) return false;
+                if (filtriAttivi[t].length > 0 && !filtriAttivi[t].includes(item[campi[t]])) {
+                    matchFiltri = false; break;
+                }
             }
-            return true;
+            return matchSearch && matchFiltri;
         });
-        
-        // ... (codice per i conteggi e innerHTML del box come prima)
-    });
 
-    document.getElementById('stats').innerText = `Trovate: ${datiFiltratiCorrenti.length.toLocaleString('it-IT')}`;
-    render(datiFiltratiCorrenti);
-}
+        // 2. Aggiornamento dinamico delle checkbox e dei rispettivi contatori numerici
+        Object.keys(campi).forEach(titolo => {
+            const idBox = `box-${titolo.replace(/\//g,'-')}`;
+            const box = document.getElementById(idBox);
+            const campo = campi[titolo];
+            
+            const datiPerQuestoBox = fullData.filter(item => {
+                const testoVoce = ((item.Declaratoria || "") + " " + (item.Codice || "")).toLowerCase();
+                const matchS = terminiRicerca.every(t => testoVoce.includes(t));
+                if (!matchS) return false;
 
+                for (let t in campi) {
+                    if (t === titolo) continue;
+                    if (filtriAttivi[t].length > 0 && !filtriAttivi[t].includes(item[campi[t]])) return false;
+                }
+                return true;
+            });
+
+            const conteggi = {};
+            datiPerQuestoBox.forEach(item => {
+                const val = item[campo] || "nd";
+                conteggi[val] = (conteggi[val] || 0) + 1;
+            });
+
+            const valoriOrdinati = Object.keys(conteggi).sort();
+            box.innerHTML = valoriOrdinati.map(val => `
+                <label class="filter-item">
+                    <input type="checkbox" ${filtriAttivi[titolo].includes(val) ? 'checked' : ''} 
+                           onchange="gestisciFiltro('${titolo}', '${val.replace(/'/g, "\\'")}')">
+                    <span>${val}</span>
+                    <span class="count">${conteggi[val]}</span>
+                </label>
+            `).join('');
+        });
+
+        document.getElementById('stats').innerText = `Trovate: ${datiFiltratiCorrenti.length.toLocaleString('it-IT')}`;
+        render(datiFiltratiCorrenti);
+    }
 
     function gestisciFiltro(titolo, valore) {
         const index = filtriAttivi[titolo].indexOf(valore);
@@ -192,7 +203,7 @@ function aggiornaEApplica() {
                         <strong>Rapporto R.U.:</strong> ${v['Rapporto R.U.']}<br>
                         <strong>Settore Merceologico:</strong> ${v['Settore merceologico']}<hr>
                         <strong>GERARCHIA COMPLETA:</strong><br>
-                        ${Object.keys(campi).filter(k => k.startsWith('GENERE') || k.includes('LAVORAZIONE') || k.includes('SISTEMA')).map(k => `<small><strong>${k}:</strong> ${v[campi[k]] || '-'}</small>`).join('<br>')}
+                        ${Object.keys(campi).map(k => `<div style="font-size:11px; margin-bottom:2px;"><strong>${k}:</strong> ${v[campi[k]] || '-'}</div>`).join('')}
                     </div>
                 </div></td>
             </tr>
