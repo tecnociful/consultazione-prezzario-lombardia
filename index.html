@@ -2,16 +2,22 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 - Consultazione Agile</title>
+    <title>LOM26 - Consultazione Multi-Filtro</title>
     <style>
         :root { --primary: #1a73e8; --bg: #f8f9fa; --diff-text: #d93025; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
         
-        .sidebar { width: 320px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-        .sidebar h3 { margin: 10px 0 5px 0; font-size: 11px; color: var(--primary); border-bottom: 1px solid #eee; padding-bottom: 3px; text-transform: uppercase; }
-        .filter-group { display: flex; flex-direction: column; gap: 2px; }
-        label { font-size: 9px; font-weight: bold; color: #5f6368; }
-        select, input { padding: 6px; border: 1px solid #dadce0; border-radius: 4px; font-size: 11px; width: 100%; }
+        /* Sidebar con pannelli espandibili */
+        .sidebar { width: 340px; background: white; border-right: 1px solid #dadce0; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+        
+        .collapsible-header { background: #f1f3f4; color: #333; font-size: 11px; font-weight: bold; padding: 8px 10px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; text-transform: uppercase; user-select: none; margin-top: 5px; }
+        .collapsible-header:hover { background: #e8eaed; }
+        .collapsible-content { display: none; padding: 8px 5px; max-height: 200px; overflow-y: auto; border: 1px solid #f1f3f4; border-top: none; border-radius: 0 0 4px 4px; flex-direction: column; gap: 5px; }
+        .collapsible-content.open { display: flex; }
+
+        .checkbox-item { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; color: #444; cursor: pointer; line-height: 1.3; }
+        .checkbox-item input { margin-top: 2px; cursor: pointer; }
+        .checkbox-item span { color: #888; font-size: 10px; margin-left: auto; padding-left: 5px; }
 
         .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         header { background: white; padding: 10px 20px; border-bottom: 1px solid #dadce0; display: flex; gap: 15px; align-items: center; }
@@ -21,7 +27,8 @@
 
         .table-area { flex: 1; overflow-y: auto; background: white; }
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #dadce0; cursor: pointer; }
+        th { background: #f1f3f4; padding: 12px; text-align: left; font-size: 11px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #dadce0; cursor: pointer; user-select: none; }
+        th:hover { background: #e8eaed; }
         
         td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; cursor: pointer; }
         tr.main-row:hover { background: #f8f9fa; }
@@ -30,26 +37,28 @@
         .col-pre { width: 100px; text-align: right; font-weight: bold; }
         .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
-        /* Area Dettaglio Espandibile */
+        /* Area Dettaglio */
         .details-row { display: none; background: #fafafa; border-left: 4px solid var(--primary); }
         .details-content { padding: 20px; font-size: 12px; line-height: 1.6; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         .descr-indent { display: block; margin-top: 5px; }
         .indent-mark { font-weight: bold; color: #333; display: block; margin-top: 8px; }
         .diff-mark { color: var(--diff-text); font-weight: bold; background: #fff0f0; }
+        
+        .btn-reset { padding: 10px; cursor: pointer; background: var(--primary); color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
-        <button onclick="resetTutto()" style="padding:10px; cursor:pointer; background:var(--primary); color:white; border:none; border-radius:4px; font-size:11px; font-weight:bold;">RESET FILTRI</button>
-        <div id="livelli-container"></div>
+        <button onclick="resetTutto()" class="btn-reset">RESET FILTRI</button>
+        <div id="filtri-container"></div>
     </aside>
 
     <main class="main">
         <header>
-            <input type="text" id="search" placeholder="🔍 Cerca nel testo o codice..." style="flex:1; padding: 8px 15px; border-radius: 20px; border: 1px solid #ccc;">
+            <input type="text" id="search" placeholder="🔍 Cerca nel testo o codice..." style="flex:1; padding: 8px 15px; border-radius: 20px; border: 1px solid #ccc; font-size: 14px;">
             <button id="btnDiff" class="toggle-btn" onclick="toggleDiff()">CONFRONTO DIFF: OFF</button>
-            <div id="stats" style="font-size:12px; font-weight:bold; color:var(--primary)">Voci: 0</div>
+            <div id="stats" style="font-size:12px; font-weight:bold; color:var(--primary); white-space:nowrap;">Voci: 0</div>
         </header>
 
         <div class="table-area">
@@ -72,35 +81,134 @@
     let showDiff = false;
     let sortConfig = { campo: 'Codice', asc: true };
 
-    const nomiLivelli = ["GENERE", "MACROSETTORE", "SETTORE", "MANUFATTO", "INTERVENTO", "ATTIVITÀ", "LAVORAZIONE", "DISCIPLINA", "SISTEMA", "UNITÀ TECNOLOGICA", "MATERIA"];
-    const configFiltri = nomiLivelli.reduce((acc, n, i) => ({...acc, [`f-Liv${i+1}`]: `Descr. Liv. ${i+1}`}), {});
+    // Nuovo ordine dei filtri richiesto
+    const ordineFiltri = [
+        { etichetta: "SETTORE MERCEOLOGICO", campoJson: "Settore merceologico" },
+        { etichetta: "MATERIA", campoJson: "Descr. Liv. 11" },
+        { etichetta: "DISCIPLINA", campoJson: "Descr. Liv. 8" },
+        { etichetta: "SISTEMA", campoJson: "Descr. Liv. 9" },
+        { etichetta: "UNITÀ TECNOLOGICA", campoJson: "Descr. Liv. 10" },
+        { etichetta: "GENERE", campoJson: "Descr. Liv. 1" },
+        { etichetta: "MACROSETTORE", campoJson: "Descr. Liv. 2" },
+        { etichetta: "SETTORE GERARCHICO", campoJson: "Descr. Liv. 3" },
+        { etichetta: "MANUFATTO/DESTINAZIONE", campoJson: "Descr. Liv. 4" },
+        { etichetta: "INTERVENTO", campoJson: "Descr. Liv. 5" },
+        { etichetta: "ATTIVITÀ", campoJson: "Descr. Liv. 6" },
+        { etichetta: "LAVORAZIONE", campoJson: "Descr. Liv. 7" }
+    ];
 
     async function init() {
         // --- BLOCCO PROTEZIONE CON PASSWORD ---
-        const passwordSegreta = "LOM2026!"; // <-- Cambia questa stringa se vuoi un'altra password
+        const passwordSegreta = "LOM2026!"; 
         let inserita = prompt("Inserisci la password per accedere al Prezzario LOM26:");
-
         if (inserita !== passwordSegreta) {
-            document.body.innerHTML = `
-                <div style="font-family:sans-serif; text-align:center; padding:50px;">
-                    <h1 style="color:#d93025;">Accesso Negato</h1>
-                    <p>Password errata o non inserita. Ricarica la pagina per riprovare.</p>
-                </div>`;
+            document.body.innerHTML = `<div style="font-family:sans-serif; text-align:center; padding:50px;"><h1 style="color:#d93025;">Accesso Negato</h1></div>`;
             return; 
         }
-        // --------------------------------------
 
         try {
             const res = await fetch('./dati.json');
             const json = await res.json();
             fullData = Object.values(json.Ricerca || json);
-            const container = document.getElementById('livelli-container');
-            nomiLivelli.forEach((n, i) => container.innerHTML += `<h3>${n}</h3><div class="filter-group"><select id="f-Liv${i+1}"></select></div>`);
+            
+            // Genera i pannelli collassabili nella sidebar con il nuovo ordine
+            const container = document.getElementById('filtri-container');
+            ordineFiltri.forEach((filtro, i) => {
+                const idKey = `f-Filtro${i}`;
+                container.innerHTML += `
+                    <div class="collapsible-header" onclick="togglePanel('${idKey}')">
+                        <span>${filtro.etichetta}</span><span id="label-count-${idKey}">▸</span>
+                    </div>
+                    <div id="panel-${idKey}" class="collapsible-content" data-campo="${filtro.campoJson}"></div>
+                `;
+            });
+
             applicaFiltri();
         } catch (error) {
-            document.getElementById('stats').innerText = "Errore nel caricamento del file JSON.";
+            document.getElementById('stats').innerText = "Errore caricamento dati.";
             console.error(error);
         }
+    }
+
+    function togglePanel(idKey) {
+        const panel = document.getElementById(`panel-${idKey}`);
+        const label = document.getElementById(`label-count-${idKey}`);
+        const isOpen = panel.classList.toggle('open');
+        label.innerText = isOpen ? '▾' : '▸';
+    }
+
+    function getFiltriSelezionati() {
+        const selezionati = {};
+        ordineFiltri.forEach((filtro, i) => {
+            const idKey = `f-Filtro${i}`;
+            const checkboxes = document.querySelectorAll(`#panel-${idKey} .input-checkbox:checked`);
+            if (checkboxes.length > 0) {
+                selezionati[filtro.campoJson] = Array.from(checkboxes).map(cb => cb.value);
+            }
+        });
+        return selezionati;
+    }
+
+    function applicaFiltri() {
+        const q = document.getElementById('search').value.toLowerCase();
+        const filtriAttivi = getFiltriSelezionati();
+
+        datiFiltrati = fullData.filter(item => {
+            if (q && !item.Declaratoria.toLowerCase().includes(q) && !item.Codice.toLowerCase().includes(q)) return false;
+            
+            for (let campo in filtriAttivi) {
+                if (!filtriAttivi[campo].includes(item[campo])) return false;
+            }
+            return true;
+        });
+
+        document.getElementById('stats').innerText = `VOCI: ${datiFiltrati.length.toLocaleString('it-IT')}`;
+        aggiornaCheckboxDinamiche(q, filtriAttivi);
+        render(datiFiltrati);
+    }
+
+    function aggiornaCheckboxDinamiche(q, filtriAttivi) {
+        ordineFiltri.forEach((filtro, i) => {
+            const idKey = `f-Filtro${i}`;
+            const panel = document.getElementById(`panel-${idKey}`);
+            const campoTarget = filtro.campoJson;
+            
+            const giaFlaggati = filtriAttivi[campoTarget] || [];
+
+            const disp = fullData.filter(item => {
+                if (q && !item.Declaratoria.toLowerCase().includes(q)) return false;
+                for (let campo in filtriAttivi) {
+                    if (campo === campoTarget) continue;
+                    if (!filtriAttivi[campo].includes(item[campo])) return false;
+                }
+                return true;
+            });
+
+            const conteggi = {};
+            disp.forEach(item => {
+                const val = item[campoTarget];
+                if (val && val !== "nd") conteggi[val] = (conteggi[val] || 0) + 1;
+            });
+
+            const tutteLeOpzioni = [...new Set([...Object.keys(conteggi), ...giaFlaggati])].sort();
+            const scrollTop = panel.scrollTop;
+
+            panel.innerHTML = tutteLeOpzioni.map(opzione => {
+                const count = conteggi[opzione] || 0;
+                const checked = giaFlaggati.includes(opzione) ? 'checked' : '';
+                if (count === 0 && !checked) return '';
+
+                return `
+                    <label class="checkbox-item">
+                        <input type="checkbox" class="input-checkbox" value="${opzione}" ${checked} onchange="applicaFiltri()">
+                        ${opzione}
+                        <span>(${count})</span>
+                    </label>
+                `;
+            }).join('');
+
+            panel.scrollTop = scrollTop;
+        });
     }
 
     function toggleDiff() {
@@ -113,12 +221,12 @@
 
     function formattaDettaglio(testo, precedente) {
         if (!testo) return "";
-        let elaborato = testo;
+        let elab = testo;
         if (showDiff && precedente) {
             let pC = testo.split(' '), pP = precedente.split(' ');
-            elaborato = pC.map((p, i) => (p !== pP[i]) ? `<span class="diff-mark">${p}</span>` : p).join(' ');
+            elab = pC.map((p, i) => (p !== pP[i]) ? `<span class="diff-mark">${p}</span>` : p).join(' ');
         }
-        return elaborato.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:)/g, '<br><span class="indent-mark">$1</span>');
+        return elab.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:)/g, '<br><span class="indent-mark">$1</span>');
     }
 
     function ordina(campo) {
@@ -129,48 +237,6 @@
             return sortConfig.asc ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
         });
         render(datiFiltrati);
-    }
-
-    function applicaFiltri() {
-        const q = document.getElementById('search').value.toLowerCase();
-        datiFiltrati = fullData.filter(item => {
-            if (q && !item.Declaratoria.toLowerCase().includes(q) && !item.Codice.toLowerCase().includes(q)) return false;
-            for (let id in configFiltri) {
-                const val = document.getElementById(id).value;
-                if (val && item[configFiltri[id]] !== val) return false;
-            }
-            return true;
-        });
-        document.getElementById('stats').innerText = `VOCI: ${datiFiltrati.length}`;
-        aggiornaOpzioniFiltri(q);
-        render(datiFiltrati);
-    }
-
-    function aggiornaOpzioniFiltri(q) {
-        Object.keys(configFiltri).forEach(id => {
-            const select = document.getElementById(id);
-            if (!select) return;
-            const valAttuale = select.value;
-            const target = configFiltri[id];
-            const disp = fullData.filter(item => {
-                if (q && !item.Declaratoria.toLowerCase().includes(q)) return false;
-                for (let idOther in configFiltri) {
-                    if (idOther === id) continue;
-                    const v = document.getElementById(idOther).value;
-                    if (v && item[configFiltri[idOther]] !== v) return false;
-                }
-                return true;
-            });
-            const unici = [...new Set(disp.map(i => i[target]).filter(v => v && v !== "nd"))].sort();
-            select.innerHTML = `<option value="">Tutti (${unici.length})</option>`;
-            unici.forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v; opt.textContent = v;
-                if (v === valAttuale) opt.selected = true;
-                select.appendChild(opt);
-            });
-            select.onchange = applicaFiltri;
-        });
     }
 
     function render(data) {
@@ -192,7 +258,7 @@
                             <strong>ATTRIBUTI</strong><br>
                             U.M: ${v['U.M.']} | R.U.: ${v['Rapporto R.U.']}<br><br>
                             <strong>GERARCHIA</strong><br>
-                            ${nomiLivelli.map((n, idx) => `<small><strong>${n}:</strong> ${v['Descr. Liv. '+(idx+1)] || '-'}</small>`).join('<br>')}
+                            ${ordineFiltri.map(f => `<small><strong>${f.etichetta}:</strong> ${v[f.campoJson] || '-'}</small>`).join('<br>')}
                         </div>
                     </div>
                 </td>
@@ -206,8 +272,8 @@
     }
 
     function resetTutto() {
-        document.querySelectorAll('select').forEach(s => s.value = "");
         document.getElementById('search').value = "";
+        document.querySelectorAll('.input-checkbox').forEach(cb => cb.checked = false);
         applicaFiltri();
     }
 
