@@ -89,21 +89,24 @@
         "SETTORE MERCEOLOGICO": "Settore merceologico"
     };
 
-    async function init() {
-        try {
-            const res = await fetch('./dati.json');
-            const json = await res.json();
-            fullData = Object.values(json.Ricerca || json);
-            
-            const container = document.getElementById('filtri-container');
-            Object.keys(campi).forEach(titolo => {
-                filtriAttivi[titolo] = [];
-                container.innerHTML += `<h3>${titolo}</h3><div class="filter-box" id="box-${titolo.replace(/\//g,'-')}"></div><br>`;
-            });
+       async function init() {
+        // --- BLOCCO PROTEZIONE CON PASSWORD ---
+        const passwordSegreta = "LOM2026!"; // <-- Cambia questa con la password che vuoi tu
+        let inserita = prompt("Inserisci la password per accedere al Prezzario LOM26:");
 
-            aggiornaEApplica();
-        } catch (e) { console.error(e); }
-    }
+        if (inserita !== passwordSegreta) {
+            document.body.innerHTML = `
+                <div style="font-family:sans-serif; text-align:center; padding:50px;">
+                    <h1 style="color:#d93025;">Accesso Negato</h1>
+                    <p>Password errata o non inserita. Ricarica la pagina per riprovare.</p>
+                </div>`;
+            return; // Blocca l'esecuzione di tutto il resto del programma
+        }
+        // --------------------------------------
+
+        const res = await fetch('./dati.json');
+        const json = await res.json();
+        // ... tutto il resto del codice rimane uguale
 
     function toggleDiff() {
         showDiff = !showDiff;
