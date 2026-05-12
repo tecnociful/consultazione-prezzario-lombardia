@@ -33,12 +33,11 @@
         td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; cursor: pointer; }
         tr.main-row:hover { background: #f8f9fa; }
         
-        .col-cod { width: 180px; font-family: monospace; font-weight: bold; color: var(--primary); }
-        .col-pre { width: 100px; text-align: right; font-weight: bold; }
+        /* Larghezze Colonne Corrette per evitare sovrapposizioni */
+        .col-cod { width: 260px; font-family: monospace; font-weight: bold; color: var(--primary); }
+        .col-um { width: 70px; text-align: center; color: #555; font-weight: 500; }
+        .col-pre { width: 110px; text-align: right; font-weight: bold; }
         .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-
-        /* Evidenziazione Termini */
-        mark { background: #fff2cc; color: #000; padding: 0 2px; border-radius: 2px; }
 
         /* Area Dettaglio */
         .details-row { display: none; background: #fafafa; border-left: 4px solid var(--primary); }
@@ -54,15 +53,16 @@
 
     <aside class="sidebar">
         <button onclick="resetTutto()" class="btn-reset">RESET FILTRI</button>
-        <!-- BLOCCO GUIDA UTENTE -->
+        
+        <!-- GUIDA UTENTE -->
         <div style="background: #e8f0fe; padding: 12px; border-radius: 6px; border: 1px solid #b3d4fc; margin-bottom: 15px; font-size: 11.5px; line-height: 1.4; color: #1c3d5a;">
             <strong style="color: #1a73e8; display: block; margin-bottom: 5px; font-size: 12px;">💡 GUIDA ALLA CONSULTAZIONE</strong>
-            • <b>Ricerca Libera (AND):</b> Digita più parole separate da uno spazio (es. <i>"scavo roccia"</i>) per trovare voci che le contengono entrambe, anche non consecutive. Le parole cercate saranno evidenziate in <mark>giallo</mark>.<br><br>
-            • <b>Filtri Incrociati:</b> Apri i pannelli e seleziona più caselle contemporaneamente. I contatori si aggiornano in tempo reale mostrando solo le combinazioni effettivamente esistenti nel prezzario.<br><br>
-            • <b>Ordinamento Smart:</b> Clicca sui titoli delle colonne (CODICE, DESCRIZIONE o PREZZO) per riordinare l'elenco in ordine alfabetico o di costo.<br><br>
-            • <b>Confronto Voci (DIFF):</b> Attiva il pulsante in alto e clicca su due voci vicine per espanderle: le differenze nel testo tecnico verranno evidenziate in rosso.
+            • <b>Ricerca Libera (AND):</b> Digita più parole separate da uno spazio (es. <i>"scavo roccia"</i>) per trovare voci che le contengono entrambe. I termini cercati saranno evidenziati in <mark>giallo</mark>.<br><br>
+            • <b>Filtri Incrociati:</b> Spunta le caselle nei pannelli della sidebar. I contatori si aggiornano in tempo reale.<br><br>
+            • <b>Ordinamento Smart:</b> Clicca sui titoli delle colonne (CODICE, DESCRIZIONE, U.M. o PREZZO) per riordinare l'elenco.<br><br>
+            • <b>Confronto Voci (DIFF):</b> Attiva il pulsante in alto per evidenziare in rosso le variazioni testuali tra le schede espanse.
         </div>
-        <!-- FIN BLOCCO GUIDA UTENTE -->
+
         <div id="filtri-container"></div>
     </aside>
 
@@ -79,6 +79,7 @@
                     <tr>
                         <th class="col-cod" onclick="ordina('Codice')">CODICE</th>
                         <th onclick="ordina('Declaratoria')">DESCRIZIONE (Clicca per espandere)</th>
+                        <th class="col-um" onclick="ordina('U.M.')">U.M.</th>
                         <th class="col-pre" onclick="ordina('Prezzo')">PREZZO</th>
                     </tr>
                 </thead>
@@ -193,9 +194,8 @@
 
         let testoEvidenziato = testoGrezzo;
         termini.forEach(termine => {
-            // Protegge i caratteri speciali della regex ed evita di rompere i tag HTML interni
             const safeTerm = termine.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            const regex = new RegExp(`(?<!<[^>]*)((${safeTerm}))`, 'gi');
+            const regex = new RegExp(`(?<!<[^>]*)(?<!&[^;]*)((${safeTerm}))`, 'gi');
             testoEvidenziato = testoEvidenziato.replace(regex, '<mark>$1</mark>');
         });
         return testoEvidenziato;
@@ -264,9 +264,7 @@
             let pC = testo.split(' '), pP = precedente.split(' ');
             elab = pC.map((p, i) => (p !== pP[i]) ? `<span class="diff-mark">${p}</span>` : p).join(' ');
         }
-        // Applica l'indentazione strutturata
         elab = elab.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:)/g, '<br><span class="indent-mark">$1</span>');
-        // Applica l'evidenziazione gialla della ricerca
         return evidenziaTesto(elab);
     }
 
@@ -288,10 +286,11 @@
                 <tr class="main-row" onclick="toggleDet(${i})">
                     <td class="col-cod">${evidenziaTesto(v.Codice)}</td>
                     <td><span class="text-truncate">${evidenziaTesto(declaratoriaTroncata)}</span></td>
+                    <td class="col-um">${v['U.M.'] || '-'}</td>
                     <td class="col-pre">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
                 </tr>
                 <tr id="det-${i}" class="details-row">
-                    <td colspan="3">
+                    <td colspan="4">
                         <div class="details-content">
                             <div>
                                 <strong>SCHEDA TECNICA VOCE</strong>
@@ -299,7 +298,7 @@
                             </div>
                             <div style="border-left: 1px solid #eee; padding-left: 20px;">
                                 <strong>ATTRIBUTI</strong><br>
-                                U.M: ${v['U.M.']} | R.U.: ${v['Rapporto R.U.']}<br><br>
+                                R.U. (Manodopera): ${v['Rapporto R.U.'] || '-'}<br><br>
                                 <strong>GERARCHIA</strong><br>
                                 ${ordineFiltri.map(f => `<small><strong>${f.etichetta}:</strong> ${v[f.campoJson] || '-'}</small>`).join('<br>')}
                             </div>
