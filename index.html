@@ -150,12 +150,22 @@
     }
 
     function applicaFiltri() {
-        const q = document.getElementById('search').value.toLowerCase();
+        const queryRaw = document.getElementById('search').value.toLowerCase();
+        // Dividiamo la ricerca in singole parole (es: "scavo roccia" -> ["scavo", "roccia"])
+        const termini = queryRaw.split(' ').filter(t => t.length > 0);
+        
         const filtriAttivi = getFiltriSelezionati();
 
         datiFiltrati = fullData.filter(item => {
-            if (q && !item.Declaratoria.toLowerCase().includes(q) && !item.Codice.toLowerCase().includes(q)) return false;
+            // Logica di ricerca a più termini non consecutivi
+            if (termini.length > 0) {
+                const testoVoce = (item.Declaratoria + " " + item.Codice).toLowerCase();
+                // Verifichiamo che OGNI termine inserito sia presente nel testo della voce
+                const matchRicerca = termini.every(t => testoVoce.includes(t));
+                if (!matchRicerca) return false;
+            }
             
+            // Check dei filtri flaggabili
             for (let campo in filtriAttivi) {
                 if (!filtriAttivi[campo].includes(item[campo])) return false;
             }
@@ -163,9 +173,10 @@
         });
 
         document.getElementById('stats').innerText = `VOCI: ${datiFiltrati.length.toLocaleString('it-IT')}`;
-        aggiornaCheckboxDinamiche(q, filtriAttivi);
+        aggiornaCheckboxDinamiche(queryRaw, filtriAttivi);
         render(datiFiltrati);
     }
+
 
     function aggiornaCheckboxDinamiche(q, filtriAttivi) {
         ordineFiltri.forEach((filtro, i) => {
