@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>LOM26 - Consultazione Multi-Filtro</title>
+    <title>LOM26 - Consultazione Professionale</title>
     <style>
         :root { --primary: #1a73e8; --bg: #f8f9fa; --diff-text: #d93025; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); overflow: hidden; }
@@ -36,6 +36,9 @@
         .col-cod { width: 180px; font-family: monospace; font-weight: bold; color: var(--primary); }
         .col-pre { width: 100px; text-align: right; font-weight: bold; }
         .text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+
+        /* Evidenziazione Termini */
+        mark { background: #fff2cc; color: #000; padding: 0 2px; border-radius: 2px; }
 
         /* Area Dettaglio */
         .details-row { display: none; background: #fafafa; border-left: 4px solid var(--primary); }
@@ -81,7 +84,6 @@
     let showDiff = false;
     let sortConfig = { campo: 'Codice', asc: true };
 
-    // Nuovo ordine dei filtri richiesto
     const ordineFiltri = [
         { etichetta: "SETTORE MERCEOLOGICO", campoJson: "Settore merceologico" },
         { etichetta: "MATERIA", campoJson: "Descr. Liv. 11" },
@@ -111,7 +113,6 @@
             const json = await res.json();
             fullData = Object.values(json.Ricerca || json);
             
-            // Genera i pannelli collassabili nella sidebar con il nuovo ordine
             const container = document.getElementById('filtri-container');
             ordineFiltri.forEach((filtro, i) => {
                 const idKey = `f-Filtro${i}`;
@@ -149,23 +150,22 @@
         return selezionati;
     }
 
+    function getTerminiRicerca() {
+        const queryRaw = document.getElementById('search').value;
+        return queryRaw.split(' ').filter(t => t.trim().length > 0);
+    }
+
     function applicaFiltri() {
-        const queryRaw = document.getElementById('search').value.toLowerCase();
-        // Dividiamo la ricerca in singole parole (es: "scavo roccia" -> ["scavo", "roccia"])
-        const termini = queryRaw.split(' ').filter(t => t.length > 0);
-        
+        const termini = getTerminiRicerca().map(t => t.toLowerCase());
         const filtriAttivi = getFiltriSelezionati();
 
         datiFiltrati = fullData.filter(item => {
-            // Logica di ricerca a più termini non consecutivi
             if (termini.length > 0) {
                 const testoVoce = (item.Declaratoria + " " + item.Codice).toLowerCase();
-                // Verifichiamo che OGNI termine inserito sia presente nel testo della voce
                 const matchRicerca = termini.every(t => testoVoce.includes(t));
                 if (!matchRicerca) return false;
             }
             
-            // Check dei filtri flaggabili
             for (let campo in filtriAttivi) {
                 if (!filtriAttivi[campo].includes(item[campo])) return false;
             }
@@ -173,10 +173,24 @@
         });
 
         document.getElementById('stats').innerText = `VOCI: ${datiFiltrati.length.toLocaleString('it-IT')}`;
-        aggiornaCheckboxDinamiche(queryRaw, filtriAttivi);
+        aggiornaCheckboxDinamiche(document.getElementById('search').value.toLowerCase(), filtriAttivi);
         render(datiFiltrati);
     }
 
+    function evidenziaTesto(testoGrezzo) {
+        if (!testoGrezzo) return "";
+        const termini = getTerminiRicerca();
+        if (termini.length === 0) return testoGrezzo;
+
+        let testoEvidenziato = testoGrezzo;
+        termini.forEach(termine => {
+            // Protegge i caratteri speciali della regex ed evita di rompere i tag HTML interni
+            const safeTerm = termine.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const regex = new RegExp(`(?<!<[^>]*)((${safeTerm}))`, 'gi');
+            testoEvidenziato = testoEvidenziato.replace(regex, '<mark>$1</mark>');
+        });
+        return testoEvidenziato;
+    }
 
     function aggiornaCheckboxDinamiche(q, filtriAttivi) {
         ordineFiltri.forEach((filtro, i) => {
@@ -187,7 +201,11 @@
             const giaFlaggati = filtriAttivi[campoTarget] || [];
 
             const disp = fullData.filter(item => {
-                if (q && !item.Declaratoria.toLowerCase().includes(q)) return false;
+                if (q) {
+                    const parole = q.split(' ').filter(t => t.trim().length > 0);
+                    const testoVoce = (item.Declaratoria + " " + item.Codice).toLowerCase();
+                    if (!parole.every(t => testoVoce.includes(t))) return false;
+                }
                 for (let campo in filtriAttivi) {
                     if (campo === campoTarget) continue;
                     if (!filtriAttivi[campo].includes(item[campo])) return false;
@@ -237,7 +255,10 @@
             let pC = testo.split(' '), pP = precedente.split(' ');
             elab = pC.map((p, i) => (p !== pP[i]) ? `<span class="diff-mark">${p}</span>` : p).join(' ');
         }
-        return elab.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:)/g, '<br><span class="indent-mark">$1</span>');
+        // Applica l'indentazione strutturata
+        elab = elab.replace(/(OPERA:|LAVORO:|SPECIFICHE TECNICHE:|PRODOTTO SEMILAVORATO:|Incluso:)/g, '<br><span class="indent-mark">$1</span>');
+        // Applica l'evidenziazione gialla della ricerca
+        return evidenziaTesto(elab);
     }
 
     function ordina(campo) {
@@ -252,29 +273,32 @@
 
     function render(data) {
         const body = document.getElementById('tableBody');
-        body.innerHTML = data.slice(0, 50).map((v, i) => `
-            <tr class="main-row" onclick="toggleDet(${i})">
-                <td class="col-cod">${v.Codice}</td>
-                <td><span class="text-truncate">${v.Declaratoria}</span></td>
-                <td class="col-pre">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
-            </tr>
-            <tr id="det-${i}" class="details-row">
-                <td colspan="3">
-                    <div class="details-content">
-                        <div>
-                            <strong>SCHEDA TECNICA VOCE</strong>
-                            <div class="descr-indent">${formattaDettaglio(v.Declaratoria, i > 0 ? data[i-1].Declaratoria : null)}</div>
+        body.innerHTML = data.slice(0, 50).map((v, i) => {
+            const declaratoriaTroncata = v.Declaratoria.substring(0, 160) + "...";
+            return `
+                <tr class="main-row" onclick="toggleDet(${i})">
+                    <td class="col-cod">${evidenziaTesto(v.Codice)}</td>
+                    <td><span class="text-truncate">${evidenziaTesto(declaratoriaTroncata)}</span></td>
+                    <td class="col-pre">€ ${Number(v.Prezzo).toLocaleString('it-IT', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr id="det-${i}" class="details-row">
+                    <td colspan="3">
+                        <div class="details-content">
+                            <div>
+                                <strong>SCHEDA TECNICA VOCE</strong>
+                                <div class="descr-indent">${formattaDettaglio(v.Declaratoria, i > 0 ? data[i-1].Declaratoria : null)}</div>
+                            </div>
+                            <div style="border-left: 1px solid #eee; padding-left: 20px;">
+                                <strong>ATTRIBUTI</strong><br>
+                                U.M: ${v['U.M.']} | R.U.: ${v['Rapporto R.U.']}<br><br>
+                                <strong>GERARCHIA</strong><br>
+                                ${ordineFiltri.map(f => `<small><strong>${f.etichetta}:</strong> ${v[f.campoJson] || '-'}</small>`).join('<br>')}
+                            </div>
                         </div>
-                        <div style="border-left: 1px solid #eee; padding-left: 20px;">
-                            <strong>ATTRIBUTI</strong><br>
-                            U.M: ${v['U.M.']} | R.U.: ${v['Rapporto R.U.']}<br><br>
-                            <strong>GERARCHIA</strong><br>
-                            ${ordineFiltri.map(f => `<small><strong>${f.etichetta}:</strong> ${v[f.campoJson] || '-'}</small>`).join('<br>')}
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
     function toggleDet(i) {
