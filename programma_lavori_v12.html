@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestione Cantieri & Squadre - Gantt Risorse</title>
+<title>Programma Lavori - G.A.L.</title>
 <style>
   :root {
     --primary: #1F4E78;
@@ -41,6 +41,17 @@
   .title h1 { font-size: 1.25rem; margin: 0; color: var(--primary); }
   .header-right { display: flex; align-items: center; gap: 10px; }
   .last-update-text { font-size: 0.72rem; color: #94A3B8; white-space: nowrap; }
+  .stale-banner {
+    background: #FEF3C7; border: 1px solid #F59E0B; color: #92400E;
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 14px; font-size: 0.85rem;
+  }
+  .stale-banner button {
+    margin-left: auto; background: #F59E0B; color: #fff; border: none;
+    border-radius: 6px; padding: 6px 14px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+  .stale-banner button:hover { background: #D97706; }
+  body.readonly .stale-banner { display: none !important; }
   .settings-gear-btn {
     background: none; border: 1px solid var(--border); border-radius: 6px;
     width: 28px; height: 28px; font-size: 0.9rem; color: #94A3B8; cursor: pointer;
@@ -316,6 +327,11 @@
     </div>
   </div>
 
+  <div id="staleBanner" class="stale-banner" style="display:none;">
+    <span>&#9888;&#65039; Un altro dispositivo ha pubblicato modifiche più recenti. Continuando a lavorare qui rischi di sovrascriverle.</span>
+    <button onclick="location.reload()">Ricarica ora</button>
+  </div>
+
   <div class="tabs">
     <div class="controls-group">
       <button id="undoBtn" class="btn-add" onclick="undoLast()" title="Annulla l'ultima azione (Ctrl+Z)" disabled>&#8634; Annulla</button>
@@ -393,7 +409,13 @@
   // "⚙ GitHub" resta comunque disponibile per sovrascriverli, se un giorno servisse.
   const DEFAULT_WORKER_URL = "https://bold-snow-b2d2.fabianocanclini.workers.dev";
   const DEFAULT_READ_URL = "https://raw.githubusercontent.com/tecnociful/GAL-programma-lavori/main/programma-lavori.json";
+  // raw.githubusercontent.com tiene il file in cache per alcuni minuti anche quando è cambiato:
+  // aggiungendo un dettaglio che cambia sempre (l'orario) si ottiene sempre la versione vera.
+  function bustCache(url) {
+    return url + (url.includes("?") ? "&" : "?") + "_=" + Date.now();
+  }
   let publishConfig = { workerUrl: "", readUrl: "" }; // pubblicazione su GitHub (vedi openPublishSettings)
+  let lastKnownTimestamp = null; // orario della versione attualmente caricata, per il controllo periodico
   const DAY_ROW_MIN_WIDTH = 16; // sotto questa larghezza i numeri dei giorni spariscono (restano solo come "righello" invisibile)
   const BAR_MIN_HEIGHT = 14;    // spessore di una barra senza operai assegnati
   const BAR_MAX_HEIGHT = 56;    // spessore di una barra con tutti gli operai disponibili (o più)
@@ -1807,12 +1829,12 @@
   // Ridefinisce la larghezza del calendario sulla durata reale dei cantieri (+1 mese per
   // lato). Va richiamata dopo ogni modifica che può cambiare quanto calendario serve
   // davvero: fine di un trascinamento, nuova durata piazzata, cantiere rimosso, importazione.
-  function fitCalendarToSites() {
+  function fitCalendarToSites(persist = true) {
     const r = computeFitRange();
     rebuildCalendar(buildDatesForRange(r.startY, r.startM, r.endY, r.endM));
     renderApp();
     updateMonthlyLabel();
-    persistState();
+    if (persist) persistState();
   }
 
   // ---------- RIDIMENSIONAMENTO COLONNA CANTIERE ----------
@@ -1963,6 +1985,29 @@
     updateMonthlyLabel();
   }
 
+  // ---------- AVVISO: qualcun altro ha pubblicato una versione più recente ----------
+  function showStaleBanner() {
+    const el = document.getElementById("staleBanner");
+    if (el) el.style.display = "flex";
+  }
+  function hideStaleBanner() {
+    const el = document.getElementById("staleBanner");
+    if (el) el.style.display = "none";
+  }
+
+  async function checkForNewerRemoteVersion() {
+    const readUrl = publishConfig.readUrl || DEFAULT_READ_URL;
+    if (!readUrl || !lastKnownTimestamp) return;
+    try {
+      const resp = await fetch(bustCache(readUrl), { cache: "no-store" });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.esportatoIl && Date.parse(data.esportatoIl) > Date.parse(lastKnownTimestamp)) {
+        showStaleBanner();
+      }
+    } catch (e) { /* GitHub non raggiungibile: nessun avviso, si riprova al prossimo giro */ }
+  }
+
   function formatUpdateTimestamp(iso) {
     if (!iso) return "";
     const d = new Date(iso);
@@ -1981,6 +2026,8 @@
     const ok = await storageAdapter.set(STORAGE_KEY, payload);
     storageAdapter.setShared(STORAGE_KEY, payload); // per chi apre il link con #vista
     publishToGithub(payload); // in background: non blocca il salvataggio locale se fallisce
+    lastKnownTimestamp = payloadObj.esportatoIl;
+    hideStaleBanner(); // se stavo lavorando "alla cieca", da qui in poi la mia versione è quella buona
     setLastUpdateText(payloadObj.esportatoIl);
     flashSaveStatus(ok);
   }
@@ -2102,7 +2149,7 @@
     const readUrl = publishConfig.readUrl || DEFAULT_READ_URL;
     if (readUrl) {
       try {
-        const resp = await fetch(readUrl, { cache: "no-store" });
+        const resp = await fetch(bustCache(readUrl), { cache: "no-store" });
         if (resp.ok) githubPayload = await resp.json();
       } catch (e) { /* GitHub non raggiungibile: si usa solo la copia locale, se c'è */ }
     }
@@ -2118,6 +2165,7 @@
     try {
       applyPayload(chosen);
       if (chosen === githubPayload) await storageAdapter.set(STORAGE_KEY, JSON.stringify(chosen)); // allinea anche la copia locale
+      lastKnownTimestamp = chosen.esportatoIl || null;
       setLastUpdateText(chosen.esportatoIl);
       return true;
     } catch (e) {
@@ -2161,6 +2209,15 @@
   // ---------- MODALITÀ SOLA LETTURA: stesso link, con #vista in fondo ----------
   const READONLY = /vista|lettura|readonly/i.test(location.hash);
 
+  // Cambiare solo la parte dopo # (es. aggiungere/togliere #vista) non ricarica la pagina da
+  // solo: il browser aggiorna l'indirizzo ma il codice già in esecuzione non se ne accorge.
+  // Se il cambiamento comporta un passaggio tra editabile e sola lettura, ci si ricarica da
+  // soli, così si riparte puliti nella modalità giusta (coi controlli attivi).
+  window.addEventListener("hashchange", () => {
+    const nowReadonly = /vista|lettura|readonly/i.test(location.hash);
+    if (nowReadonly !== READONLY) location.reload();
+  });
+
   function renderReadonlyEmptyState() {
     document.getElementById("ganttTable").innerHTML =
       `<tbody><tr><td style="padding:32px 16px;text-align:center;color:#64748B;">Nessuna pianificazione disponibile ancora.<br>Chi la modifica deve aprire il link normale (senza #vista) e salvare almeno una modifica.</td></tr></tbody>`;
@@ -2170,7 +2227,7 @@
     const readUrl = publishConfig.readUrl || DEFAULT_READ_URL;
     if (readUrl) {
       try {
-        const resp = await fetch(readUrl, { cache: "no-store" });
+        const resp = await fetch(bustCache(readUrl), { cache: "no-store" });
         if (resp.ok) {
           const data = await resp.json();
           applyPayload(data);
@@ -2212,13 +2269,16 @@
 
     // Ridefinisce sempre la larghezza del calendario sulla durata reale dei cantieri
     // (+1 mese per lato), sia per i dati demo sia per una pianificazione già salvata.
-    fitCalendarToSites();
+    // "false": è solo una sistemazione della vista al caricamento, non una modifica vera —
+    // non deve pubblicare nulla da sola.
+    fitCalendarToSites(false);
 
     document.getElementById("ganttScrollWrap").addEventListener("scroll", () => {
       updateMonthlyLabel(); scheduleBarLabelUpdate();
     });
 
     setTimeout(scrollToToday, 50);
+    setInterval(checkForNewerRemoteVersion, 20000);
   }
 
   boot();
