@@ -408,7 +408,7 @@
   // qui direttamente invece di richiedere una configurazione su ogni dispositivo. Il pannello
   // "⚙ GitHub" resta comunque disponibile per sovrascriverli, se un giorno servisse.
   const DEFAULT_WORKER_URL = "https://bold-snow-b2d2.fabianocanclini.workers.dev";
-  const DEFAULT_READ_URL = "https://raw.githubusercontent.com/tecnociful/GAL-programma-lavori/main/programma-lavori.json";
+  const DEFAULT_READ_URL = DEFAULT_WORKER_URL; // stesso Worker: GET per leggere, POST per pubblicare
   // raw.githubusercontent.com tiene il file in cache per alcuni minuti anche quando è cambiato:
   // aggiungendo un dettaglio che cambia sempre (l'orario) si ottiene sempre la versione vera.
   function bustCache(url) {
@@ -2073,7 +2073,7 @@
     menu.innerHTML = `
       <div class="date-menu-title">Pubblicazione su GitHub</div>
       <label class="date-menu-field">Indirizzo del Worker (per salvare)<input type="text" id="publishWorkerUrl" value="${publishConfig.workerUrl || DEFAULT_WORKER_URL}" placeholder="https://tuo-worker.tuo-account.workers.dev"></label>
-      <label class="date-menu-field">Indirizzo raw del file (per leggere, versione sola lettura)<input type="text" id="publishReadUrl" value="${publishConfig.readUrl || DEFAULT_READ_URL}" placeholder="https://raw.githubusercontent.com/utente/repo/main/file.json"></label>
+      <label class="date-menu-field">Indirizzo per leggere (di solito uguale a quello del Worker)<input type="text" id="publishReadUrl" value="${publishConfig.readUrl || DEFAULT_READ_URL}" placeholder="https://tuo-worker.tuo-account.workers.dev"></label>
       <div class="date-menu-actions">
         <button type="button" class="date-menu-cancel" onclick="closeDateMenu()">Annulla</button>
         <button type="button" class="date-menu-apply" onclick="applyPublishSettings()">Salva</button>
